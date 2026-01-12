@@ -76,6 +76,7 @@ fun SongApp(
 ) {
     var songs by remember { mutableStateOf(emptyList<Song>()) }
     var selectedSong by remember { mutableStateOf<Song?>(null) }
+    val listState = rememberLazyListState()
     
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -93,7 +94,8 @@ fun SongApp(
             songs = songs,
             onSongClick = { selectedSong = it },
             isDarkTheme = isDarkTheme,
-            onThemeToggle = onThemeToggle
+            onThemeToggle = onThemeToggle,
+            listState = listState
         )
     }
 }
@@ -104,12 +106,12 @@ fun SongListScreen(
     songs: List<Song>,
     onSongClick: (Song) -> Unit,
     isDarkTheme: Boolean,
-    onThemeToggle: () -> Unit
+    onThemeToggle: () -> Unit,
+    listState: LazyListState
 ) {
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
-    val listState = rememberLazyListState()
 
     val filteredSongs = remember(query, songs) {
         if (query.isBlank()) songs
