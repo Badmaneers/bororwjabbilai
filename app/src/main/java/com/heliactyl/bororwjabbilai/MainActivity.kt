@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Search
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -151,6 +153,18 @@ fun SongListScreen(
                             context.startActivity(intent)
                         }
                     )
+                    SocialRow(
+                        text = "Email",
+                        handle = "dukebraham24@gmail.com",
+                        iconVector = Icons.Default.Email,
+                        tint = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:dukebraham24@gmail.com")
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
                 }
             },
             confirmButton = {
@@ -233,7 +247,8 @@ fun SongListScreen(
 fun SocialRow(
     text: String, 
     handle: String, 
-    iconModel: Any, 
+    iconModel: Any? = null,
+    iconVector: ImageVector? = null,
     tint: Color? = null, 
     onClick: () -> Unit
 ) {
@@ -253,15 +268,24 @@ fun SocialRow(
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(iconModel)
-                .build(),
-            imageLoader = imageLoader,
-            contentDescription = text,
-            modifier = Modifier.size(24.dp),
-            colorFilter = tint?.let { ColorFilter.tint(it) }
-        )
+        if (iconVector != null) {
+            Icon(
+                imageVector = iconVector,
+                contentDescription = text,
+                tint = tint ?: LocalContentColor.current,
+                modifier = Modifier.size(24.dp)
+            )
+        } else {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(iconModel)
+                    .build(),
+                imageLoader = imageLoader,
+                contentDescription = text,
+                modifier = Modifier.size(24.dp),
+                colorFilter = tint?.let { ColorFilter.tint(it) }
+            )
+        }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(text = text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
