@@ -11,7 +11,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -107,6 +109,7 @@ fun SongListScreen(
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
     val filteredSongs = remember(query, songs) {
         if (query.isBlank()) songs
@@ -178,6 +181,7 @@ fun SongListScreen(
     Box(Modifier.fillMaxSize()) {
         if (!active) {
             LazyColumn(
+                state = listState,
                 contentPadding = PaddingValues(top = statusBarHeight + 72.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
