@@ -509,7 +509,7 @@ fun SongListScreen(
             }
         }
 
-        SearchBar(
+        DockedSearchBar(
             query = query,
             onQueryChange = onQueryChange,
             onSearch = { onActiveChange(false) },
@@ -548,7 +548,7 @@ fun SongListScreen(
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
                 .fillMaxWidth()
-                .padding(horizontal = if (active) 0.dp else 16.dp) 
+                .padding(horizontal = 16.dp) 
         ) {
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
