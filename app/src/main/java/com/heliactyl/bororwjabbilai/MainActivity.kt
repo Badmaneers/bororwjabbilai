@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -419,6 +420,18 @@ fun SongListScreen(
         }
     }
 
+    fun getSnippet(contentHtml: String, query: String): String? {
+        if (query.length < 2) return null
+        val plainText = contentHtml.replace(Regex("<[^>]*>"), " ").replace(Regex("\\s+"), " ").trim()
+        val index = plainText.indexOf(query, ignoreCase = true)
+        if (index == -1) return null
+        
+        val start = (index - 20).coerceAtLeast(0)
+        val end = (index + query.length + 30).coerceAtMost(plainText.length)
+        
+        return (if (start > 0) "..." else "") + plainText.substring(start, end) + (if (end < plainText.length) "..." else "")
+    }
+
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     
     val context = LocalContext.current
@@ -502,6 +515,7 @@ fun SongListScreen(
                     SongItem(
                         song = song, 
                         isFavorite = favoriteIds.contains(song.id),
+                        snippet = if (query.isNotBlank()) getSnippet(song.contentHtml, query) else null,
                         onFavoriteClick = { onFavoriteClick(song) },
                         onClick = { onSongClick(song) }
                     )
@@ -558,6 +572,7 @@ fun SongListScreen(
                     SongItem(
                         song = song,
                         isFavorite = favoriteIds.contains(song.id),
+                        snippet = if (query.isNotBlank()) getSnippet(song.contentHtml, query) else null,
                         onFavoriteClick = { onFavoriteClick(song) },
                         onClick = {
                             onSongClick(song)
@@ -620,6 +635,7 @@ fun SocialRow(
 fun SongItem(
     song: Song, 
     isFavorite: Boolean,
+    snippet: String? = null,
     onFavoriteClick: () -> Unit,
     onClick: () -> Unit
 ) {
@@ -640,13 +656,24 @@ fun SongItem(
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (!snippet.isNullOrBlank()) {
+                    Text(
+                        text = snippet,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontStyle = FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
             Icon(
                 imageVector = if (isFavorite) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                 contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
