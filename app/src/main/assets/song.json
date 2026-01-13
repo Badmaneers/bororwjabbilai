@@ -5729,7 +5729,7 @@
   },
   {
     "_id": 717,
-    "char": "@",
+    "char": "b",
     "suggest_text_1": "Be songsarni",
     "suggest_text_def": "<p>Be songsarni <br />\ndukhu dahakou lananwi<br />\nMabwrwi jaolangbaonw <br />\nangni jiuni dinga</p>\n<p>1. Lwithwa-bw guar Fwrbu<br />\nNaoa-bw fisa <br />\nSomao fwiyw bar hungkha<br />\nSomao fwiyw dwhou<br />\nJiuni dingakhou lana <br />\nMabwrwi jaolangbaonw</p>\n<p>Barhw fwidw barhw fwidw<br />\nAngkhoubw nwngni jaigasim</p>\n<p>2. Mengli langw Fwrbu<br />\nRubai langw <br />\nHahang haya hang jayw<br />\nNwngnisim jaolangnw</p>",
     "suggest_intent_data_id": "717",
@@ -5737,7 +5737,7 @@
   },
   {
     "_id": 718,
-    "char": "@",
+    "char": "b",
     "suggest_text_1": "Boha thangnw Fwrbu ang",
     "suggest_text_def": "<p>Boha thangnw Fwrbu ang <br />\nNwngkhou nagarna<br />\nNwng gwiabla Fwrbu angha <br />\nJiu Gwia</p>\n<p>1. Fapni mayayao andaiw ang <br />\nO Fwrbu angkhou nwng basai</p>\n<p>2. Songsarni fakonao goboyw ang<br />\nO Fwrbu angkhou nwng basai</p>\n<p>3. Khwmsi songsarao andaiw ang<br />\nO Fwrbu angkhou nwng basai</p>",
     "suggest_intent_data_id": "718",
@@ -5745,7 +5745,7 @@
   },
   {
     "_id": 719,
-    "char": "@",
+    "char": "b",
     "suggest_text_1": "Boinikhrui bwlwgra",
     "suggest_text_def": "<p>1. Boinikhrui bwlwgra<br />\nBoinibw Raja<br />\nSwrjigiri nwng gaswi mithingani<br />\nBoinikhrui gyani gaswi maharini<br />\nNwng dongmwn boinibw sigangao</p>\n<p>2. Boikhoubw ongra <br />\nBoikhoubw dagra<br />\nGaswi beramkhou <br />\nswkhagra Iswr Nwng<br />\nFwi jwng boibw bikhounw khulumni<br />\nBini mungwi methai rwjabni</p>\n<p>3. Krus-aonw jiu hwbai biyw<br />\nSwinangbai jwngni fapni thakwinw<br />\nGwswkhang bini swinangnaikhou <br />\nJwngni thakwinw <br />\nJiu hwbai Bi<br />\nJwngni thakwi </p>\n",
     "suggest_intent_data_id": "719",
@@ -5753,7 +5753,7 @@
   },
   {
     "_id": 720,
-    "char": "@",
+    "char": "f",
     "suggest_text_1": "Fwrbu ang beaonw dong",
     "suggest_text_def": "<p>Fwrbu ang beaonw dong<br />\nBakhnaiw ang Nwngkhounw<br />\nAng Nwngkhou-nw khaolaiw<br />\nFwi Nwng angni gwswao</p>\n<p>1. Jisu angni Jisu<br />\nNwngkhou ang nenanwi dong</p>\n<p>2. Basaigiri angni basaigiri<br />\nNwngkhou ang nenanwi dong</p>\n<p>3. Swrjigiri angni swrjigiri<br />\nNwngkhou ang nenanwi dong</p>",
     "suggest_intent_data_id": "720",
@@ -5761,7 +5761,7 @@
   },
   {
     "_id": 721,
-    "char": "@",
+    "char": "f",
     "suggest_text_1": "Fwrbu Jisu manw esegrap",
     "suggest_text_def": "<p>Fwrbu Jisu manw esegrap <br />\nonw nwng angkhou<br />\nKhwifwdni somaobw <br />\nDukhuni somaobw<br />\nThayw orai som<br />\nAngjwng lwgwse</p>\n<p>1. Dukhuni jwmwia jebla<br />\nangniao saglwb fwiyw<br />\nBwi somaobw angni <br />\nJiukhou nwng gwjwn hwyw</p>\n<p>2. Kwifwdni barhungka <br />\nJebla angniao barbwyw<br />\nBwi somaobw angni <br />\nJiukou nwng gwjwn hwyw  </p>",
     "suggest_intent_data_id": "721",
@@ -5769,7 +5769,7 @@
   },
   {
     "_id": 722,
-    "char": "@",
+    "char": "g",
     "suggest_text_1": "Geder sanao dinwi rongja",
     "suggest_text_def": "<p>Geder sanao dinwi rongja<br />\nSarijabai dinwi Jisu raja<br />\nHayaoni mansifwr dinwi rongja</p>\n<p>1. Sanja deshni pondit-fwra<br />\nSona-rupa lana khulumfwibai<br />\nHayaoni mansifwr dinwi rongja</p>\n<p>2. Goliao jisua sarijabai<br />\nOnthao bathao futhu jabai<br />\nHayaoni mansifwr dinwi rongja</p>",
     "suggest_intent_data_id": "722",
@@ -5777,7 +5777,7 @@
   },
   {
     "_id": 723,
-    "char": "@",
+    "char": "g",
     "suggest_text_1": "Ginanga angni jiuao Fwrbu",
     "suggest_text_def": "<p>Ginanga angni jiuao Fwrbu<br />\nDongo Nwng lwgwse</p>\n<p>1. Rahani giri Nwng <br />\nKhwifwd dukhuao swrang hwyw(Nwng)</p>\n<p>2. Bengkhon-bwla khwmsiao<br />\nJingga sinang-bwla ang<br />\nFwrbu Nwng nainan thayakhwi<br />\nGwjwnwi banjai fwyw(Nwng)</p>\n<p>3. Nedw Nwng Fwrbu angkhou <br />\nOnnaini nwjwrjwng<br />\nNenan dongo swithana<br />\nSwinangnai khongkor-ao langnw</p>",
     "suggest_intent_data_id": "723",
@@ -5785,7 +5785,7 @@
   },
   {
     "_id": 724,
-    "char": "@",
+    "char": "g",
     "suggest_text_1": "Gubunfra khulumba da khulumthwng",
     "suggest_text_def": "<p>Gubunfra khulumba da khulumthwng<br />\nAngba nathai angni nokhorkhou <br />\nlananwi Afa Iswrkhousw khulumgwn<br />\nHai khulumgwn</p>\n<p>1. Gubunfra minibla minithwng <br />\nBungkhwma-blabw bungkhwmathwng<br />\nBifwrkhou anglai khwma hwa</p>\n<p>2. Swithw Iswrkhou sinaibai ang<br />\nBasaijanai-khou mwnbai ang<br />\nThwiblabw angha ginai gwia</p>\n",
     "suggest_intent_data_id": "724",
@@ -5793,7 +5793,7 @@
   },
   {
     "_id": 725,
-    "char": "@",
+    "char": "j",
     "suggest_text_1": "Jalanggwn madi be songsara",
     "suggest_text_def": "<p>Jalanggwn madi be songsara<br />\nJabwgou honwi bwthwra<br />\nGabnai arw swinangnaiao</p>\n<p>1. Siri mwndw de boibw gwsw swlaidw<br />\nHadorni mansifwr gwsw fwthaidw<br />\nNongkai nonga Baibel-ni fwrmainai raoa<br />\nJafungthargwn Jisuni bungnai be raoa</p>\n<p>2. Sodom gomora-ni badi jathargwn<br />\nGondokni okhaya hayao gwglwigwn<br />\nBargo haya raobw jwnglai jwbnai bwthwrao<br />\nLot badi fwthaiabla jwbnai songsarao</p>\n<p>3. Da sanswi songsarkhou dongbao hwnnanwi<br />\nDa sanswi fapnifrai gogwn hwnnanwi<br />\nSannai jwngni gaswibw fwimal jathargwn<br />\nSannai jwngni sukhni swrgw simangsw jagwn</p>",
     "suggest_intent_data_id": "725",
@@ -5801,7 +5801,7 @@
   },
   {
     "_id": 726,
-    "char": "@",
+    "char": "m",
     "suggest_text_1": "Muluga raonibw nonga",
     "suggest_text_def": "<p>Muluga raonibw nonga<br />\nSongsara raonibw nonga</p>\n<p>1. Thakha fwisa mai dwi rangkhaori<br />\nAngni nonga raonibw nonga<br />\nGaswibw Fwrbu-nisw</p>\n<p>Naihor honwi khaise gabdwng <br />\nkhaise minidwng<br />\nKhaiseba magi magi janangbaidwng</p>\n<p>2. Gaoni dongnai fwrkhou lana <br />\nsandwng nama hayao duga<br />\nNathai Fwrbuni sannaia saya maya</p>",
     "suggest_intent_data_id": "726",
@@ -5809,7 +5809,7 @@
   },
   {
     "_id": 727,
-    "char": "@",
+    "char": "o",
     "suggest_text_1": "O Afa angkhou Nwng da nagar",
     "suggest_text_def": "<p>O Afa angkhou Nwng da nagar<br />\nAngnifrai Nwng gwjanao da thang</p>\n<p>1. Gwswni sannaijwng<br />\nMegonni nainaijwng<br />\nKhugani railainaijwng<br />\nAngw fap maoflangbai thayw</p>\n<p>2. Lwrbangtar ang Afa <br />\nJiuao haoria<br />\nMabwrwi angw derhalangbaonw</p>\n<p>3. Angkhou Nwng homtha Afa<br />\nGaswibw gajrinifrai<br />\nNongabla angni jiua adri jagwn </p>",
     "suggest_intent_data_id": "727",
@@ -5817,7 +5817,7 @@
   },
   {
     "_id": 728,
-    "char": "@",
+    "char": "s",
     "suggest_text_1": "Siri mwndw siri mwndw",
     "suggest_text_def": "<p>Siri mwndw siri mwndw-4<br />\nFwrbu Jisua fwifingou<br />\nGaoni bungnai badi<br />\nFwrbua fwifingou</p>\n<p>1. Lama naibai thayw <br />\nFwrbua nwngkhou<br />\nJiuni lama kinthanw</p>\n<p>2. Lama naibai thayw <br />\nFwrbua nwngkhou<br />\nGwjwnni raijw kinthanw<br />\nMithiya nama nwng dabwnw<br />\nFwrbuni onnaikhou</p>\n<p>3. Linghordwng Fwrbu jisua<br />\nNwngni jiukhou basainw(baikhonw)<br />\nMithiya nama nwng dabwnw<br />\nFwrbuni onnaikhou</p>\n",
     "suggest_intent_data_id": "728",
@@ -5825,7 +5825,7 @@
   },
   {
     "_id": 729,
-    "char": "@",
+    "char": "s",
     "suggest_text_1": "Swrjigiri Nwng Afa",
     "suggest_text_def": "<p>Swrjigiri Nwng Afa <br />\nBasaigiri Nwng Buhumni</p>\n<p>Angha jebw angkal gwia <br />\nNwng thanaiao</p>\n<p>1. Baonai nonga nwngkhou angw <br />\nThangnan thasandi<br />\nDukhu arw sukhuaobw <br />\nNwngkhou khulumgwn</p>\n<p>2. Angni jiuni raha nwngw <br />\nSwithw arw jiu<br />\nAngni jiuni basaigiri<br />\nSaselo Iswr</p>\n",
     "suggest_intent_data_id": "729",
@@ -5833,7 +5833,7 @@
   },
   {
     "_id": 730,
-    "char": "@",
+    "char": "w",
     "suggest_text_1": "Wi khalbari nwng",
     "suggest_text_def": "<p>Wi khalbari nwng<br />\nWi Golgata<br />\nSibigwn nwngkhou jwng gole gole</p>\n<p>1. Jwngni fapni thakwi <br />\nKrus dongfangaonw<br />\nGaoni gwthang jiukhou buli hwbai</p>\n<p>2. Nwngkhou sibinaikai <br />\nNwngkhou khulumnaikai<br />\nMulugni mansijwng mugwi jabai</p>\n<p>3.  Mugwi jaywblabw <br />\nNeosi jaywblabw<br />\nKristoni khwtakou dabao dabao</p>\n",
     "suggest_intent_data_id": "730",
@@ -5841,7 +5841,7 @@
   },
   {
     "_id": 731,
-    "char": "@",
+    "char": "a",
     "suggest_text_1": "Angni jiuni bigwma",
     "suggest_text_def": "<p>Angni jiuni bigwma<br />\nFwrbu nwng Jisu<br />\nAngni jiuni lwgw<br />\nFwrbu nwng Jisu</p>\n<p>Baonw haya -3 <br />\nFwrbu Nwngkhou </p>\n<p>Be buhumao raobw gwia<br />\nAngkhou onsaigra<br />\nGwia raobw angkhou basaigra</p>",
     "suggest_intent_data_id": "731",
@@ -5849,7 +5849,7 @@
   },
   {
     "_id": 732,
-    "char": "@",
+    "char": "f",
     "suggest_text_1": "Fwrbu angni nwng",
     "suggest_text_def": "<p>Fwrbu angni nwng<br />\nBese besen gwnang<br />\nAng onw nwngkhou onw<br />\nManwna angkhou agwlao onbai<br />\n....Jisu angni Jisu....</p>",
     "suggest_intent_data_id": "732",
@@ -5857,7 +5857,7 @@
   },
   {
     "_id": 733,
-    "char": "@",
+    "char": "m",
     "suggest_text_1": "Mansia nwrwkni jabaimwn",
     "suggest_text_def": "<p>Mansia nwrwkni jabaimwn<br />\nGonaini jebw raha gwiliamwn</p>\n<p>Angni fapni takwi ang swinangoumwn<br />\nAngni fapni takwi ang thwinangoumwn</p>\n<p>Angni jiu swlera lajitao fapjwngnw bungfopbai<br />\nMithinanwibw ang fapaonw thagra</p>\n<p>Angkhou nwng onnanwi<br />\nKalbari krusao thwibai nwng<br />\nBesen gwnang jiukhou<br />\nAngnw baonanwi</p>\n",
     "suggest_intent_data_id": "733",
@@ -5865,7 +5865,7 @@
   },
   {
     "_id": 734,
-    "char": "@",
+    "char": "n",
     "suggest_text_1": "Nwngni onnaini saiklumao",
     "suggest_text_def": "<p>Nwngni onnaini saiklumao<br />\nThanw hw afa angkhoubw</p>\n<p>1. Jerao dongo jiuni gwjwnnai<br />\nOnjima gwiwi rongjanai<br />\nBiaonw angbw thanw lubwiw</p>\n<p>2. Bwlw gwia afa angniao <br />\nTwinaini hengta jujinw<br />\nNwng badi gaoni jiukhou gothainw</p>",
     "suggest_intent_data_id": "734",
@@ -5873,7 +5873,7 @@
   },
   {
     "_id": 735,
-    "char": "@",
+    "char": "g",
     "suggest_text_1": "Gwia matw raobw switw",
     "suggest_text_def": "<p>Gwia matw raobw switw <br />\nFwrbu nwngni swrjinai subunga</p>\n<p>Bwkangjlainai kwifwd nidannifrai</p>\n<p>1. Bihi bisaijwngnw nanglai khomlai<br />\nBida fongbaijwngnw thogaijlainai<br />\nBenw nama subungni akhua</p>\n<p>2. Dhwrwm kwrwm-aobw suhable langbai<br />\nHari somaj-aobw gubungle jabai<br />\nGuslai fingwn mabwla subunga</p>\n",
     "suggest_intent_data_id": "735",
@@ -5881,7 +5881,7 @@
   },
   {
     "_id": 736,
-    "char": "@",
+    "char": "d",
     "suggest_text_1": "Duku daha be buhumao",
     "suggest_text_def": "<p>Duku daha be buhumao <br />\nSuku duku be guar songsarao<br />\nMalaba gabnai malaba mininai<br />\nAngni be jiu lamayao</p>\n<p>1. Raobw mwntia raobw bujia<br />\nSwrnao ang bungnw <br />\nSwrnaotw ang swngnw<br />\nNwnglo angni jiuni lwgw</p>\n<p>2. Aaros ang gabw nwngniao Fwrbu<br />\nNwng thaywbla ginanga jebw<br />\nNwnglo angni jiuni lwgw</p>\n",
     "suggest_intent_data_id": "736",
@@ -5889,7 +5889,7 @@
   },
   {
     "_id": 737,
-    "char": "@",
+    "char": "i",
     "suggest_text_1": "Iswra mansikhou onw",
     "suggest_text_def": "<p>Iswra mansikhou onw<br />\nTwnhortbai saselo bisakhou<br />\nJwngnw bikhou krusao hwbai<br />\nHai! hai! madi gwrwnti maoflangkw<br />\nJwngw gaoni fapao gaonw thwinangbai<br />\nJwngnw bikhou krusao hwbai</p>\n<p>Jaia jwngni fapni takwi, \nkalbari kruskhou banna <br />\nSwrgwni lama dwntibai<br />\nOh! ho...aha...</p>\n",
     "suggest_intent_data_id": "737",
@@ -5897,7 +5897,7 @@
   },
   {
     "_id": 738,
-    "char": "@",
+    "char": "h",
     "suggest_text_1": "Hey! Fwrbu nwng",
     "suggest_text_def": "<p>Hey! Fwrbu nwng<br />\nHey! Fwrbu nwng angkou negra<br />\nAngni jiu khou nwng basaigra<br />\nOrai somao thabai thagra <br />\nangni jiuni lwgw nwng-2</p>\n<p>1. Bese gder nwngni onnai<br />\nbungsonw haywi nwngni sannai<br />\nSwrgwni gwbang onnai nwngni<br />\nLunanwi hwbai nwngw-2</p>\n<p>2. Manw basayw nwng angkou <br />\nfapi angni be jiukhou<br />\nHwbai nwng khalbari krusao<br />\nRujunw haywi onnai-2</p>\n",
     "suggest_intent_data_id": "738",
@@ -5905,7 +5905,7 @@
   },
   {
     "_id": 739,
-    "char": "@",
+    "char": "i",
     "suggest_text_1": "Iswrni gwthar saliao",
     "suggest_text_def": "<p>Iswrni gwthar saliao<br />\nGothayw angni be jiukhou<br />\nAngni gaswibw gwsw gwrbwjwng-2<br />\nNwngninw prosongsa jathwng-2</p>\n<p>1. Angni Iswr, angni modot<br />\nNwngni bwswna angni swrang-2<br />\nKhwmsi horaobw swrang hwyw-2<br />\nNwngninw prosongsa jathwng</p>\n<p>2. Dikhangw angni akhai<br />\nNwngninw mungao bakhnainaijwng-2<br />\nAngni gaswibw gwsw gwrbwjwng-2<br />\nNwngninw jwi jwi jathwng.</p>",
     "suggest_intent_data_id": "739",
