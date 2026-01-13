@@ -47,6 +47,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
 import coil.ImageLoader
@@ -140,6 +143,10 @@ fun SongApp(
     var filterChar by remember { mutableStateOf<String?>(null) }
     var showFilterSheet by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
+    var hasSeenSwipeTutorial by remember { mutableStateOf(prefs.getBoolean("has_seen_swipe_tutorial", false)) }
+
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             songs = songRepository.getSongs()
@@ -213,19 +220,61 @@ fun SongApp(
                             }
                         }
                     )
+                    
+                    Box(contentAlignment = Alignment.Center) {
+                    }
+                    
                     NavigationBarItem(
                         icon = { 
-                            Icon(
-                                Icons.Default.Home, 
-                                contentDescription = "Home",
-                                modifier = Modifier.pointerInput(Unit) {
-                                    detectVerticalDragGestures { change, dragAmount ->
-                                        if (dragAmount < -10) { // Drag up
-                                            showFilterSheet = true
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Home, 
+                                    contentDescription = "Home",
+                                    modifier = Modifier.pointerInput(Unit) {
+                                        detectVerticalDragGestures { change, dragAmount ->
+                                            if (dragAmount < -10) { // Drag up
+                                                showFilterSheet = true
+                                                if (!hasSeenSwipeTutorial) {
+                                                    hasSeenSwipeTutorial = true
+                                                    prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                                }
+                                            }
                                         }
                                     }
+                                )
+                                
+                                if (!hasSeenSwipeTutorial && pagerState.currentPage == 1) {
+                                    val infiniteTransition = rememberInfiniteTransition(label = "tutorial")
+                                    val offset by infiniteTransition.animateFloat(
+                                        initialValue = 0f,
+                                        targetValue = -30f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(1000, easing = LinearEasing),
+                                            repeatMode = RepeatMode.Restart
+                                        ),
+                                        label = "offset"
+                                    )
+                                    val alpha by infiniteTransition.animateFloat(
+                                        initialValue = 1f,
+                                        targetValue = 0f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(1000, easing = LinearEasing),
+                                            repeatMode = RepeatMode.Restart
+                                        ),
+                                        label = "alpha"
+                                    )
+
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowUpward,
+                                        contentDescription = null, // decorative
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .offset(y = offset.dp) // Move up visually
+                                            .alpha(alpha)
+                                            .size(24.dp)
+                                    )
                                 }
-                            ) 
+                            }
                         },
                         label = { Text("Home") },
                         selected = pagerState.currentPage == 1,
@@ -235,6 +284,7 @@ fun SongApp(
                             }
                         }
                     )
+
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
                         label = { Text("Recents") },
