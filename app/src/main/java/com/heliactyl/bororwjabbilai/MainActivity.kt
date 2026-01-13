@@ -21,8 +21,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
@@ -93,6 +96,7 @@ class MainActivity : ComponentActivity() {
                     SongApp(
                         songRepository = SongRepository(context),
                         recentsRepository = RecentsRepository(context),
+                        favoritesRepository = FavoritesRepository(context),
                         isDarkTheme = useDarkTheme,
                         onThemeCycle = {
                             val newMode = when (themeMode) {
@@ -115,18 +119,21 @@ class MainActivity : ComponentActivity() {
 fun SongApp(
     songRepository: SongRepository,
     recentsRepository: RecentsRepository,
+    favoritesRepository: FavoritesRepository,
     isDarkTheme: Boolean,
     onThemeCycle: () -> Unit
 ) {
     var songs by remember { mutableStateOf(emptyList<Song>()) }
     var recentIds by remember { mutableStateOf(recentsRepository.getRecentIds()) }
+    var favoriteIds by remember { mutableStateOf(favoritesRepository.getFavoriteIds()) }
     var selectedSong by remember { mutableStateOf<Song?>(null) }
     
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
     
     val homeListState = rememberLazyListState()
     val recentsListState = rememberLazyListState()
+    val favoritesListState = rememberLazyListState()
     
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -135,9 +142,16 @@ fun SongApp(
     }
 
     LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage == 1) {
+        if (pagerState.currentPage == 2) {
             recentIds = recentsRepository.getRecentIds()
+        } else if (pagerState.currentPage == 0) {
+            favoriteIds = favoritesRepository.getFavoriteIds()
         }
+    }
+    
+    fun toggleFavorite(song: Song) {
+         favoritesRepository.toggleFavorite(song.id)
+         favoriteIds = favoritesRepository.getFavoriteIds()
     }
 
     if (selectedSong != null) {
@@ -151,8 +165,8 @@ fun SongApp(
             bottomBar = {
                 NavigationBar {
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        label = { Text("Home") },
+                        icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
+                        label = { Text("Saved") },
                         selected = pagerState.currentPage == 0,
                         onClick = { 
                             coroutineScope.launch {
@@ -161,12 +175,22 @@ fun SongApp(
                         }
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
-                        label = { Text("Recents") },
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        label = { Text("Home") },
                         selected = pagerState.currentPage == 1,
                         onClick = { 
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(1)
+                            }
+                        }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
+                        label = { Text("Recents") },
+                        selected = pagerState.currentPage == 2,
+                        onClick = { 
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(2)
                             }
                         }
                     )
@@ -179,35 +203,60 @@ fun SongApp(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) { page ->
-                if (page == 0) {
-                    SongListScreen(
-                        songs = songs,
-                        onSongClick = { 
-                            selectedSong = it
-                            recentsRepository.addRecent(it.id)
-                            recentIds = recentsRepository.getRecentIds()
-                        },
-                        isDarkTheme = isDarkTheme,
-                        onThemeCycle = onThemeCycle,
-                        listState = homeListState
-                    )
-                } else {
-                    val recentSongs = remember(songs, recentIds) {
-                        val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
-                        songs.filter { it.id in recentMap }
-                            .sortedBy { recentMap[it.id] }
+                when (page) {
+                    0 -> {
+                        val favoriteSongs = remember(songs, favoriteIds) {
+                            songs.filter { it.id in favoriteIds }
+                        }
+                         SongListScreen(
+                            songs = favoriteSongs,
+                            favoriteIds = favoriteIds,
+                            onSongClick = { 
+                                selectedSong = it
+                                recentsRepository.addRecent(it.id)
+                                recentIds = recentsRepository.getRecentIds()
+                            },
+                            onFavoriteClick = { toggleFavorite(it) },
+                            isDarkTheme = isDarkTheme,
+                            onThemeCycle = onThemeCycle,
+                            listState = favoritesListState
+                        )
                     }
-                    SongListScreen(
-                        songs = recentSongs,
-                        onSongClick = { 
-                            selectedSong = it
-                            recentsRepository.addRecent(it.id)
-                            recentIds = recentsRepository.getRecentIds()
-                        },
-                        isDarkTheme = isDarkTheme,
-                        onThemeCycle = onThemeCycle,
-                        listState = recentsListState
-                    )
+                    1 -> {
+                        SongListScreen(
+                            songs = songs,
+                            favoriteIds = favoriteIds,
+                            onSongClick = { 
+                                selectedSong = it
+                                recentsRepository.addRecent(it.id)
+                                recentIds = recentsRepository.getRecentIds()
+                            },
+                            onFavoriteClick = { toggleFavorite(it) },
+                            isDarkTheme = isDarkTheme,
+                            onThemeCycle = onThemeCycle,
+                            listState = homeListState
+                        )
+                    }
+                    2 -> {
+                        val recentSongs = remember(songs, recentIds) {
+                            val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
+                            songs.filter { it.id in recentMap }
+                                .sortedBy { recentMap[it.id] }
+                        }
+                        SongListScreen(
+                            songs = recentSongs,
+                            favoriteIds = favoriteIds,
+                            onSongClick = { 
+                                selectedSong = it
+                                recentsRepository.addRecent(it.id)
+                                recentIds = recentsRepository.getRecentIds()
+                            },
+                            onFavoriteClick = { toggleFavorite(it) },
+                            isDarkTheme = isDarkTheme,
+                            onThemeCycle = onThemeCycle,
+                            listState = recentsListState
+                        )
+                    }
                 }
             }
         }
@@ -218,7 +267,9 @@ fun SongApp(
 @Composable
 fun SongListScreen(
     songs: List<Song>,
+    favoriteIds: List<Int>,
     onSongClick: (Song) -> Unit,
+    onFavoriteClick: (Song) -> Unit,
     isDarkTheme: Boolean,
     onThemeCycle: () -> Unit,
     listState: LazyListState
@@ -315,7 +366,12 @@ fun SongListScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(filteredSongs) { song ->
-                    SongItem(song = song, onClick = { onSongClick(song) })
+                    SongItem(
+                        song = song, 
+                        isFavorite = favoriteIds.contains(song.id),
+                        onFavoriteClick = { onFavoriteClick(song) },
+                        onClick = { onSongClick(song) }
+                    )
                 }
             }
         }
@@ -366,10 +422,15 @@ fun SongListScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(filteredSongs) { song ->
-                    SongItem(song = song, onClick = {
-                        onSongClick(song)
-                        active = false
-                    })
+                    SongItem(
+                        song = song,
+                        isFavorite = favoriteIds.contains(song.id),
+                        onFavoriteClick = { onFavoriteClick(song) },
+                        onClick = {
+                            onSongClick(song)
+                            active = false
+                        }
+                    )
                 }
             }
         }
@@ -423,7 +484,12 @@ fun SocialRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SongItem(song: Song, onClick: () -> Unit) {
+fun SongItem(
+    song: Song, 
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
+    onClick: () -> Unit
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -445,7 +511,16 @@ fun SongItem(song: Song, onClick: () -> Unit) {
                 text = song.title,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (isFavorite) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clickable(onClick = onFavoriteClick)
+                    .padding(8.dp)
             )
         }
     }
