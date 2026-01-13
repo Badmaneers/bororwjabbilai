@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WbSunny
@@ -690,6 +692,24 @@ fun SongItem(
 @Composable
 fun SongDetailScreen(song: Song, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
+    
+    var keepScreenOn by remember { mutableStateOf(prefs.getBoolean("keep_screen_on", false)) }
+    var fontSize by remember { mutableFloatStateOf(prefs.getFloat("font_size", 18f)) }
+
+    DisposableEffect(keepScreenOn) {
+        val window = (context as? android.app.Activity)?.window
+        if (keepScreenOn) {
+            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
     
     Scaffold(
@@ -699,6 +719,34 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { 
+                        if (fontSize > 12f) {
+                            fontSize -= 2f
+                            prefs.edit().putFloat("font_size", fontSize).apply()
+                        }
+                    }) {
+                        Text("A-", fontWeight = FontWeight.Bold)
+                    }
+                    IconButton(onClick = { 
+                        if (fontSize < 40f) {
+                            fontSize += 2f
+                            prefs.edit().putFloat("font_size", fontSize).apply()
+                        }
+                    }) {
+                        Text("A+", fontWeight = FontWeight.Bold)
+                    }
+                    IconButton(onClick = { 
+                        keepScreenOn = !keepScreenOn
+                        prefs.edit().putBoolean("keep_screen_on", keepScreenOn).apply()
+                    }) {
+                        Icon(
+                            imageVector = if (keepScreenOn) Icons.Default.Lock else Icons.Default.LockOpen,
+                            contentDescription = "Keep Screen On",
+                            tint = if (keepScreenOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             )
@@ -714,11 +762,12 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
             AndroidView(
                 factory = { context ->
                     TextView(context).apply {
-                        textSize = 18f
+                        // Initial setup
                     }
                 },
                 update = { textView ->
                     textView.setTextColor(textColor)
+                    textView.textSize = fontSize
                     textView.text = HtmlCompat.fromHtml(song.contentHtml, HtmlCompat.FROM_HTML_MODE_LEGACY)
                 }
             )
