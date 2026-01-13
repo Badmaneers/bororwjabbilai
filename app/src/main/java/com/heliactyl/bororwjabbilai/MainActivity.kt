@@ -45,6 +45,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
 import coil.ImageLoader
@@ -114,7 +116,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SongApp(
     songRepository: SongRepository,
@@ -135,6 +137,9 @@ fun SongApp(
     val recentsListState = rememberLazyListState()
     val favoritesListState = rememberLazyListState()
     
+    var filterChar by remember { mutableStateOf<String?>(null) }
+    var showFilterSheet by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             songs = songRepository.getSongs()
@@ -152,6 +157,40 @@ fun SongApp(
     fun toggleFavorite(song: Song) {
          favoritesRepository.toggleFavorite(song.id)
          favoriteIds = favoritesRepository.getFavoriteIds()
+    }
+
+    if (showFilterSheet) {
+        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Select Letter Filter", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                val chars = ('A'..'Z').map { it.toString() } + "@"
+                
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    chars.forEach { char ->
+                        FilterChip(
+                            selected = filterChar == char,
+                            onClick = { 
+                                filterChar = if (filterChar == char) null else char
+                                showFilterSheet = false
+                            },
+                            label = { Text(char) }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
     }
 
     if (selectedSong != null) {
@@ -175,7 +214,19 @@ fun SongApp(
                         }
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        icon = { 
+                            Icon(
+                                Icons.Default.Home, 
+                                contentDescription = "Home",
+                                modifier = Modifier.pointerInput(Unit) {
+                                    detectVerticalDragGestures { change, dragAmount ->
+                                        if (dragAmount < -10) { // Drag up
+                                            showFilterSheet = true
+                                        }
+                                    }
+                                }
+                            ) 
+                        },
                         label = { Text("Home") },
                         selected = pagerState.currentPage == 1,
                         onClick = { 
@@ -234,7 +285,8 @@ fun SongApp(
                             onFavoriteClick = { toggleFavorite(it) },
                             isDarkTheme = isDarkTheme,
                             onThemeCycle = onThemeCycle,
-                            listState = homeListState
+                            listState = homeListState,
+                            filterChar = filterChar
                         )
                     }
                     2 -> {
@@ -272,15 +324,26 @@ fun SongListScreen(
     onFavoriteClick: (Song) -> Unit,
     isDarkTheme: Boolean,
     onThemeCycle: () -> Unit,
-    listState: LazyListState
+    listState: LazyListState,
+    filterChar: String? = null
 ) {
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
 
-    val filteredSongs = remember(query, songs) {
-        if (query.isBlank()) songs
-        else {
+    val filteredSongs = remember(query, songs, filterChar) {
+        if (filterChar != null) {
+            val q = filterChar
+            if (q == "@") {
+                songs.filter { !it.categoryChar[0].isLetter() }
+            } else {
+                songs.filter {
+                    it.categoryChar.equals(q, ignoreCase = true)
+                }
+            }
+        } else if (query.isBlank()) {
+            songs
+        } else {
             val q = query.trim()
             songs.filter {
                 it.title.contains(q, ignoreCase = true) ||
