@@ -22,7 +22,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,17 +52,50 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val systemDark = isSystemInDarkTheme()
-            var darkTheme by remember { mutableStateOf(systemDark) }
+            val context = LocalContext.current
+            val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
+            
+            // 0: System, 1: Light, 2: Dark
+            var themeMode by remember(systemDark) { 
+                val lastSystemDark = prefs.getBoolean("last_system_dark", systemDark)
+                val initialMode = if (lastSystemDark != systemDark) {
+                    prefs.edit()
+                        .putInt("theme_mode", 0)
+                        .putBoolean("last_system_dark", systemDark)
+                        .apply()
+                    0
+                } else {
+                    if (!prefs.contains("last_system_dark")) {
+                        prefs.edit().putBoolean("last_system_dark", systemDark).apply()
+                    }
+                    prefs.getInt("theme_mode", 0)
+                }
+                mutableIntStateOf(initialMode)
+            }
 
-            BoroRwjabBilaiTheme(darkTheme = darkTheme) {
+            val useDarkTheme = when (themeMode) {
+                1 -> false
+                2 -> true
+                else -> systemDark
+            }
+
+            BoroRwjabBilaiTheme(darkTheme = useDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     SongApp(
-                        songRepository = SongRepository(this),
-                        isDarkTheme = darkTheme,
-                        onThemeToggle = { darkTheme = !darkTheme }
+                        songRepository = SongRepository(context),
+                        isDarkTheme = useDarkTheme,
+                        onThemeCycle = {
+                            val newMode = when (themeMode) {
+                                0 -> if (systemDark) 1 else 2
+                                1 -> 2
+                                else -> 1
+                            }
+                            themeMode = newMode
+                            prefs.edit().putInt("theme_mode", newMode).apply()
+                        }
                     )
                 }
             }
@@ -72,7 +107,7 @@ class MainActivity : ComponentActivity() {
 fun SongApp(
     songRepository: SongRepository,
     isDarkTheme: Boolean,
-    onThemeToggle: () -> Unit
+    onThemeCycle: () -> Unit
 ) {
     var songs by remember { mutableStateOf(emptyList<Song>()) }
     var selectedSong by remember { mutableStateOf<Song?>(null) }
@@ -94,7 +129,7 @@ fun SongApp(
             songs = songs,
             onSongClick = { selectedSong = it },
             isDarkTheme = isDarkTheme,
-            onThemeToggle = onThemeToggle,
+            onThemeCycle = onThemeCycle,
             listState = listState
         )
     }
@@ -106,7 +141,7 @@ fun SongListScreen(
     songs: List<Song>,
     onSongClick: (Song) -> Unit,
     isDarkTheme: Boolean,
-    onThemeToggle: () -> Unit,
+    onThemeCycle: () -> Unit,
     listState: LazyListState
 ) {
     var query by remember { mutableStateOf("") }
@@ -122,18 +157,27 @@ fun SongListScreen(
     }
 
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    
+    val context = LocalContext.current
+    val imageLoader = remember {
+        ImageLoader.Builder(context)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .build()
+    }
 
     if (showInfoDialog) {
         AlertDialog(
             onDismissRequest = { showInfoDialog = false },
             title = { Text("Developer Info") },
             text = {
-                val context = LocalContext.current
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     SocialRow(
                         text = "Instagram",
                         handle = "@heliactyl",
                         iconModel = "file:///android_asset/instagram.svg",
+                        imageLoader = imageLoader,
                         onClick = {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/heliactyl"))
                             context.startActivity(intent)
@@ -143,6 +187,7 @@ fun SongListScreen(
                         text = "Telegram",
                         handle = "@dumbdragon",
                         iconModel = "file:///android_asset/telegram.svg",
+                        imageLoader = imageLoader,
                         onClick = {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/dumbdragon"))
                             context.startActivity(intent)
@@ -152,7 +197,8 @@ fun SongListScreen(
                         text = "GitHub",
                         handle = "Badmaneers",
                         iconModel = "file:///android_asset/github.svg",
-                        tint = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                        imageLoader = imageLoader,
+                        tint = MaterialTheme.colorScheme.onBackground,
                         onClick = {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Badmaneers"))
                             context.startActivity(intent)
@@ -162,7 +208,8 @@ fun SongListScreen(
                         text = "Email",
                         handle = "dukebraham24@gmail.com",
                         iconVector = Icons.Default.Email,
-                        tint = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                        imageLoader = imageLoader,
+                        tint = MaterialTheme.colorScheme.onBackground,
                         onClick = {
                             val intent = Intent(Intent.ACTION_SENDTO).apply {
                                 data = Uri.parse("mailto:dukebraham24@gmail.com")
@@ -211,9 +258,10 @@ fun SongListScreen(
                     }
                 } else {
                     Row {
-                        IconButton(onClick = onThemeToggle) {
+                        IconButton(onClick = onThemeCycle) {
+                            val icon = if (isDarkTheme) Icons.Default.NightsStay else Icons.Default.WbSunny
                             Icon(
-                                imageVector = Icons.Default.Lightbulb,
+                                imageVector = icon,
                                 contentDescription = "Toggle Theme",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -253,19 +301,13 @@ fun SongListScreen(
 fun SocialRow(
     text: String, 
     handle: String, 
+    imageLoader: ImageLoader,
     iconModel: Any? = null,
     iconVector: ImageVector? = null,
     tint: Color? = null, 
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val imageLoader = remember {
-        ImageLoader.Builder(context)
-            .components {
-                add(SvgDecoder.Factory())
-            }
-            .build()
-    }
 
     Row(
         modifier = Modifier
