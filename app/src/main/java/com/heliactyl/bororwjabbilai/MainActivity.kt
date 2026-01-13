@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.alpha
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -142,6 +144,9 @@ fun SongApp(
     
     var filterChar by remember { mutableStateOf<String?>(null) }
     var showFilterSheet by remember { mutableStateOf(false) }
+
+    var query by rememberSaveable { mutableStateOf("") }
+    var active by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
@@ -336,7 +341,11 @@ fun SongApp(
                             isDarkTheme = isDarkTheme,
                             onThemeCycle = onThemeCycle,
                             listState = homeListState,
-                            filterChar = filterChar
+                            filterChar = filterChar,
+                            query = query,
+                            onQueryChange = { query = it },
+                            active = active,
+                            onActiveChange = { active = it }
                         )
                     }
                     2 -> {
@@ -375,10 +384,12 @@ fun SongListScreen(
     isDarkTheme: Boolean,
     onThemeCycle: () -> Unit,
     listState: LazyListState,
-    filterChar: String? = null
+    filterChar: String? = null,
+    query: String = "",
+    onQueryChange: (String) -> Unit = {},
+    active: Boolean = false,
+    onActiveChange: (Boolean) -> Unit = {}
 ) {
-    var query by remember { mutableStateOf("") }
-    var active by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
 
     val filteredSongs = remember(query, songs, filterChar) {
@@ -398,10 +409,13 @@ fun SongListScreen(
             songs.filter {
                 it.title.contains(q, ignoreCase = true) ||
                 it.id.toString().contains(q) ||
+                it.contentHtml.contains(q, ignoreCase = true) ||
                 it.categoryChar.equals(q, ignoreCase = true)
-            }.sortedByDescending {
+            }.sortedWith(compareByDescending<Song> {
                 it.categoryChar.equals(q, ignoreCase = true)
-            }
+            }.thenByDescending {
+                 it.title.contains(q, ignoreCase = true)
+            })
         }
     }
 
@@ -497,16 +511,16 @@ fun SongListScreen(
 
         SearchBar(
             query = query,
-            onQueryChange = { query = it },
-            onSearch = { active = false },
+            onQueryChange = onQueryChange,
+            onSearch = { onActiveChange(false) },
             active = active,
-            onActiveChange = { active = it },
+            onActiveChange = onActiveChange,
             placeholder = { Text("Search song by number or title") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             trailingIcon = {
                 if (active || query.isNotEmpty()) {
                     IconButton(onClick = {
-                        if (query.isNotEmpty()) query = "" else active = false
+                        if (query.isNotEmpty()) onQueryChange("") else onActiveChange(false)
                     }) {
                         Icon(Icons.Default.Close, contentDescription = "Clear")
                     }
@@ -547,7 +561,7 @@ fun SongListScreen(
                         onFavoriteClick = { onFavoriteClick(song) },
                         onClick = {
                             onSongClick(song)
-                            active = false
+                            // Keep active state for return
                         }
                     )
                 }
