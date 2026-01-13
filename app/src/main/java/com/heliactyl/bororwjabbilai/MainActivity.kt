@@ -263,7 +263,7 @@ fun SongApp(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SongListScreen(
     songs: List<Song>,
@@ -280,9 +280,15 @@ fun SongListScreen(
 
     val filteredSongs = remember(query, songs) {
         if (query.isBlank()) songs
-        else songs.filter {
-            it.title.contains(query, ignoreCase = true) ||
-            it.id.toString().contains(query)
+        else {
+            val q = query.trim()
+            songs.filter {
+                it.title.contains(q, ignoreCase = true) ||
+                it.id.toString().contains(q) ||
+                it.categoryChar.equals(q, ignoreCase = true)
+            }.sortedByDescending {
+                it.categoryChar.equals(q, ignoreCase = true)
+            }
         }
     }
 
