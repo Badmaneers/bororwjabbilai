@@ -198,7 +198,7 @@ fun SongListScreen(
                         handle = "Badmaneers",
                         iconModel = "file:///android_asset/github.svg",
                         imageLoader = imageLoader,
-                        tint = MaterialTheme.colorScheme.onBackground,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         onClick = {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Badmaneers"))
                             context.startActivity(intent)
@@ -209,7 +209,7 @@ fun SongListScreen(
                         handle = "dukebraham24@gmail.com",
                         iconVector = Icons.Default.Email,
                         imageLoader = imageLoader,
-                        tint = MaterialTheme.colorScheme.onBackground,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         onClick = {
                             val intent = Intent(Intent.ACTION_SENDTO).apply {
                                 data = Uri.parse("mailto:dukebraham24@gmail.com")
