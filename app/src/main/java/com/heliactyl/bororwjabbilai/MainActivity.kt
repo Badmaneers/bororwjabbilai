@@ -7,6 +7,7 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -14,12 +15,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.NightsStay
@@ -45,6 +50,7 @@ import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.heliactyl.bororwjabbilai.ui.theme.BoroRwjabBilaiTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
@@ -86,6 +92,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     SongApp(
                         songRepository = SongRepository(context),
+                        recentsRepository = RecentsRepository(context),
                         isDarkTheme = useDarkTheme,
                         onThemeCycle = {
                             val newMode = when (themeMode) {
@@ -103,19 +110,33 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SongApp(
     songRepository: SongRepository,
+    recentsRepository: RecentsRepository,
     isDarkTheme: Boolean,
     onThemeCycle: () -> Unit
 ) {
     var songs by remember { mutableStateOf(emptyList<Song>()) }
+    var recentIds by remember { mutableStateOf(recentsRepository.getRecentIds()) }
     var selectedSong by remember { mutableStateOf<Song?>(null) }
-    val listState = rememberLazyListState()
+    
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val coroutineScope = rememberCoroutineScope()
+    
+    val homeListState = rememberLazyListState()
+    val recentsListState = rememberLazyListState()
     
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             songs = songRepository.getSongs()
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage == 1) {
+            recentIds = recentsRepository.getRecentIds()
         }
     }
 
@@ -125,13 +146,71 @@ fun SongApp(
             onBack = { selectedSong = null }
         )
     } else {
-        SongListScreen(
-            songs = songs,
-            onSongClick = { selectedSong = it },
-            isDarkTheme = isDarkTheme,
-            onThemeCycle = onThemeCycle,
-            listState = listState
-        )
+        Scaffold(
+            contentWindowInsets = WindowInsets.navigationBars,
+            bottomBar = {
+                NavigationBar {
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        label = { Text("Home") },
+                        selected = pagerState.currentPage == 0,
+                        onClick = { 
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(0)
+                            }
+                        }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
+                        label = { Text("Recents") },
+                        selected = pagerState.currentPage == 1,
+                        onClick = { 
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(1)
+                            }
+                        }
+                    )
+                }
+            }
+        ) { innerPadding ->
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) { page ->
+                if (page == 0) {
+                    SongListScreen(
+                        songs = songs,
+                        onSongClick = { 
+                            selectedSong = it
+                            recentsRepository.addRecent(it.id)
+                            recentIds = recentsRepository.getRecentIds()
+                        },
+                        isDarkTheme = isDarkTheme,
+                        onThemeCycle = onThemeCycle,
+                        listState = homeListState
+                    )
+                } else {
+                    val recentSongs = remember(songs, recentIds) {
+                        val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
+                        songs.filter { it.id in recentMap }
+                            .sortedBy { recentMap[it.id] }
+                    }
+                    SongListScreen(
+                        songs = recentSongs,
+                        onSongClick = { 
+                            selectedSong = it
+                            recentsRepository.addRecent(it.id)
+                            recentIds = recentsRepository.getRecentIds()
+                        },
+                        isDarkTheme = isDarkTheme,
+                        onThemeCycle = onThemeCycle,
+                        listState = recentsListState
+                    )
+                }
+            }
+        }
     }
 }
 
