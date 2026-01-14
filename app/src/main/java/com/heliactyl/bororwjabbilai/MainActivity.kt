@@ -749,48 +749,69 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
     
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(song.title) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { 
-                        if (fontSize > 12f) {
-                            fontSize -= 2f
-                            prefs.edit().putFloat("font_size", fontSize).apply()
-                        }
-                    }) {
-                        Text("A-", fontWeight = FontWeight.Bold)
-                    }
-                    IconButton(onClick = { 
-                        if (fontSize < 40f) {
-                            fontSize += 2f
-                            prefs.edit().putFloat("font_size", fontSize).apply()
-                        }
-                    }) {
-                        Text("A+", fontWeight = FontWeight.Bold)
-                    }
-                    IconButton(onClick = { 
-                        keepScreenOn = !keepScreenOn
-                        prefs.edit().putBoolean("keep_screen_on", keepScreenOn).apply()
-                    }) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 4.dp, vertical = 8.dp)
+                        .height(IntrinsicSize.Min),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.align(Alignment.Top)
+                    ) {
                         Icon(
-                            imageVector = if (keepScreenOn) Icons.Default.Lock else Icons.Default.LockOpen,
-                            contentDescription = "Keep Screen On",
-                            tint = if (keepScreenOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp)
+                            .padding(vertical = 12.dp)
+                    )
+
+                    Row(modifier = Modifier.align(Alignment.Top)) {
+                        IconButton(onClick = { 
+                            if (fontSize > 12f) {
+                                fontSize -= 2f
+                                prefs.edit().putFloat("font_size", fontSize).apply()
+                            }
+                        }) {
+                            Text("A-", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        IconButton(onClick = { 
+                            if (fontSize < 40f) {
+                                fontSize += 2f
+                                prefs.edit().putFloat("font_size", fontSize).apply()
+                            }
+                        }) {
+                            Text("A+", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        IconButton(onClick = { 
+                            keepScreenOn = !keepScreenOn
+                            prefs.edit().putBoolean("keep_screen_on", keepScreenOn).apply()
+                        }) {
+                            Icon(
+                                imageVector = if (keepScreenOn) Icons.Default.Lock else Icons.Default.LockOpen,
+                                contentDescription = "Keep Screen On",
+                                tint = if (keepScreenOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
-            )
+            }
         }
     ) { padding ->
         Column(
