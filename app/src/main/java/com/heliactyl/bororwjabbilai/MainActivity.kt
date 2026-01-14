@@ -415,9 +415,13 @@ fun SongListScreen(
                 it.contentHtml.contains(q, ignoreCase = true) ||
                 it.categoryChar.equals(q, ignoreCase = true)
             }.sortedWith(compareByDescending<Song> {
+                it.title.startsWith(q, ignoreCase = true)
+            }.thenByDescending {
+                it.title.contains(q, ignoreCase = true)
+            }.thenByDescending {
                 it.categoryChar.equals(q, ignoreCase = true)
             }.thenByDescending {
-                 it.title.contains(q, ignoreCase = true)
+                it.contentHtml.contains(q, ignoreCase = true)
             })
         }
     }
