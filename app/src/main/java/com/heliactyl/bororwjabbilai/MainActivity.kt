@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -228,27 +230,24 @@ fun SongApp(
             onBack = { selectedSong = null }
         )
     } else {
-        Scaffold(
-            contentWindowInsets = WindowInsets.navigationBars,
-            bottomBar = {
-                NavigationBar {
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
-                        label = { Text("Saved") },
-                        selected = pagerState.currentPage == 0,
-                        onClick = { 
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(0)
+        Box(modifier = Modifier.fillMaxSize()) {
+            Scaffold(
+                contentWindowInsets = WindowInsets.navigationBars,
+                bottomBar = {
+                    NavigationBar {
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
+                            label = { Text("Saved") },
+                            selected = pagerState.currentPage == 0,
+                            onClick = { 
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
                             }
-                        }
-                    )
+                        )
                     
-                    Box(contentAlignment = Alignment.Center) {
-                    }
-                    
-                    NavigationBarItem(
-                        icon = { 
-                            Box(contentAlignment = Alignment.Center) {
+                        NavigationBarItem(
+                            icon = { 
                                 Icon(
                                     Icons.Default.Home, 
                                     contentDescription = "Home",
@@ -264,125 +263,145 @@ fun SongApp(
                                         }
                                     }
                                 )
-                                
-                                if (!hasSeenSwipeTutorial && pagerState.currentPage == 1) {
-                                    val infiniteTransition = rememberInfiniteTransition(label = "tutorial")
-                                    val offset by infiniteTransition.animateFloat(
-                                        initialValue = 0f,
-                                        targetValue = -30f,
-                                        animationSpec = infiniteRepeatable(
-                                            animation = tween(1000, easing = LinearEasing),
-                                            repeatMode = RepeatMode.Restart
-                                        ),
-                                        label = "offset"
-                                    )
-                                    val alpha by infiniteTransition.animateFloat(
-                                        initialValue = 1f,
-                                        targetValue = 0f,
-                                        animationSpec = infiniteRepeatable(
-                                            animation = tween(1000, easing = LinearEasing),
-                                            repeatMode = RepeatMode.Restart
-                                        ),
-                                        label = "alpha"
-                                    )
-
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowUpward,
-                                        contentDescription = null, // decorative
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier
-                                            .offset(y = offset.dp) // Move up visually
-                                            .alpha(alpha)
-                                            .size(24.dp)
-                                    )
+                            },
+                            label = { Text("Home") },
+                            selected = pagerState.currentPage == 1,
+                            onClick = { 
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(1)
                                 }
                             }
-                        },
-                        label = { Text("Home") },
-                        selected = pagerState.currentPage == 1,
-                        onClick = { 
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(1)
-                            }
-                        }
-                    )
+                        )
 
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
-                        label = { Text("Recents") },
-                        selected = pagerState.currentPage == 2,
-                        onClick = { 
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(2)
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
+                            label = { Text("Recents") },
+                            selected = pagerState.currentPage == 2,
+                            onClick = { 
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(2)
+                                }
                             }
+                        )
+                    }
+                }
+            ) { innerPadding ->
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) { page ->
+                    when (page) {
+                        0 -> {
+                            val favoriteSongs = remember(songs, favoriteIds) {
+                                songs.filter { it.id in favoriteIds }
+                            }
+                             SongListScreen(
+                                songs = favoriteSongs,
+                                favoriteIds = favoriteIds,
+                                onSongClick = { 
+                                    selectedSong = it
+                                    recentsRepository.addRecent(it.id)
+                                    recentIds = recentsRepository.getRecentIds()
+                                },
+                                onFavoriteClick = { toggleFavorite(it) },
+                                isDarkTheme = isDarkTheme,
+                                onThemeCycle = onThemeCycle,
+                                listState = favoritesListState
+                            )
                         }
-                    )
+                        1 -> {
+                            SongListScreen(
+                                songs = songs,
+                                favoriteIds = favoriteIds,
+                                onSongClick = { 
+                                    selectedSong = it
+                                    recentsRepository.addRecent(it.id)
+                                    recentIds = recentsRepository.getRecentIds()
+                                },
+                                onFavoriteClick = { toggleFavorite(it) },
+                                isDarkTheme = isDarkTheme,
+                                onThemeCycle = onThemeCycle,
+                                listState = homeListState,
+                                filterChar = filterChar,
+                                query = query,
+                                onQueryChange = { query = it },
+                                active = active,
+                                onActiveChange = { active = it }
+                            )
+                        }
+                        2 -> {
+                            val recentSongs = remember(songs, recentIds) {
+                                val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
+                                songs.filter { it.id in recentMap }
+                                    .sortedBy { recentMap[it.id] }
+                            }
+                            SongListScreen(
+                                songs = recentSongs,
+                                favoriteIds = favoriteIds,
+                                onSongClick = { 
+                                    selectedSong = it
+                                    recentsRepository.addRecent(it.id)
+                                    recentIds = recentsRepository.getRecentIds()
+                                },
+                                onFavoriteClick = { toggleFavorite(it) },
+                                isDarkTheme = isDarkTheme,
+                                onThemeCycle = onThemeCycle,
+                                listState = recentsListState
+                            )
+                        }
+                    }
                 }
             }
-        ) { innerPadding ->
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) { page ->
-                when (page) {
-                    0 -> {
-                        val favoriteSongs = remember(songs, favoriteIds) {
-                            songs.filter { it.id in favoriteIds }
+
+            if (!hasSeenSwipeTutorial && pagerState.currentPage == 1) {
+                val infiniteTransition = rememberInfiniteTransition(label = "tutorial")
+                val yOffset by infiniteTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = -100f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1500, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "yOffset"
+                )
+                val alpha by infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1500, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "alpha"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 80.dp) // Above Navigation Bar
+                        .offset(y = yOffset.dp)
+                        .alpha(alpha)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Surface(
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shadowElevation = 4.dp
+                        ) {
+                            Text(
+                                "Swipe Up to Filter",
+                                modifier = Modifier.padding(8.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         }
-                         SongListScreen(
-                            songs = favoriteSongs,
-                            favoriteIds = favoriteIds,
-                            onSongClick = { 
-                                selectedSong = it
-                                recentsRepository.addRecent(it.id)
-                                recentIds = recentsRepository.getRecentIds()
-                            },
-                            onFavoriteClick = { toggleFavorite(it) },
-                            isDarkTheme = isDarkTheme,
-                            onThemeCycle = onThemeCycle,
-                            listState = favoritesListState
-                        )
-                    }
-                    1 -> {
-                        SongListScreen(
-                            songs = songs,
-                            favoriteIds = favoriteIds,
-                            onSongClick = { 
-                                selectedSong = it
-                                recentsRepository.addRecent(it.id)
-                                recentIds = recentsRepository.getRecentIds()
-                            },
-                            onFavoriteClick = { toggleFavorite(it) },
-                            isDarkTheme = isDarkTheme,
-                            onThemeCycle = onThemeCycle,
-                            listState = homeListState,
-                            filterChar = filterChar,
-                            query = query,
-                            onQueryChange = { query = it },
-                            active = active,
-                            onActiveChange = { active = it }
-                        )
-                    }
-                    2 -> {
-                        val recentSongs = remember(songs, recentIds) {
-                            val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
-                            songs.filter { it.id in recentMap }
-                                .sortedBy { recentMap[it.id] }
-                        }
-                        SongListScreen(
-                            songs = recentSongs,
-                            favoriteIds = favoriteIds,
-                            onSongClick = { 
-                                selectedSong = it
-                                recentsRepository.addRecent(it.id)
-                                recentIds = recentsRepository.getRecentIds()
-                            },
-                            onFavoriteClick = { toggleFavorite(it) },
-                            isDarkTheme = isDarkTheme,
-                            onThemeCycle = onThemeCycle,
-                            listState = recentsListState
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.TouchApp,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(48.dp)
                         )
                     }
                 }
