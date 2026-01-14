@@ -182,7 +182,21 @@ fun SongApp(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Select Letter Filter", style = MaterialTheme.typography.titleMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Select Letter Filter", style = MaterialTheme.typography.titleMedium)
+                    if (filterChar != null) {
+                        TextButton(onClick = { 
+                            filterChar = null
+                            showFilterSheet = false
+                        }) {
+                            Text("Clear")
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 val chars = ('A'..'Z').map { it.toString() } + "@"
