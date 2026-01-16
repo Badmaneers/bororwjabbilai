@@ -16,6 +16,16 @@ A modern Android application for viewing and singing along to Boro songs. Built 
 *   **Theme Aware**: Fully supports Dark and Light modes (system default or toggle within app).
 *   **Developer Info**: Integrated access to social links and contact information.
 
+## 📸 Screenshots
+
+| Home (Light) | Home (Dark) | Song View |
+|:---:|:---:|:---:|
+| <img src="docs/images/home_screen_light.png" width="200" /> | <img src="docs/images/home_screen_dark.png" width="200" /> | <img src="docs/images/song_view.png" width="200" /> |
+
+| Filters | Favourites | Recents |
+|:---:|:---:|:---:|
+| <img src="docs/images/filters.png" width="200" /> | <img src="docs/images/favourites.png" width="200" /> | <img src="docs/images/recents.png" width="200" /> |
+
 ## 🛠️ Tech Stack
 
 *   **Language**: Kotlin
