@@ -1,5 +1,7 @@
 # Boro Rwjab Bilai
 
+![Android](https://img.shields.io/badge/Android-3DDC84?style=flat&logo=android&logoColor=white) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) ![Stars](https://img.shields.io/github/stars/Badmaneers/bororwjabbilai)
+
 A modern Android application for viewing and singing along to Boro songs. Built with **Kotlin** and **Jetpack Compose**, focusing on a clean Material 3 interface and smooth user experience.
 
 ## ✨ Features
