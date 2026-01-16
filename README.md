@@ -84,4 +84,4 @@ Support helps in maintaining the server (if applicable) and motivating further d
 
 ## 📄 License
 
-This project is proprietary. All rights reserved by **Heliactyl**.
+This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE.txt) file for details.
