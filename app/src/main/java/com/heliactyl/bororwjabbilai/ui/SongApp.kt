@@ -1,5 +1,12 @@
 package com.heliactyl.bororwjabbilai.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -66,7 +73,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun SongApp(
     songRepository: SongRepository,
@@ -164,13 +171,26 @@ fun SongApp(
         }
     }
 
-    if (selectedSong != null) {
-        SongDetailScreen(
-            song = selectedSong!!,
-            onBack = { selectedSong = null }
-        )
-    } else {
-        Box(modifier = Modifier.fillMaxSize()) {
+    AnimatedContent(
+        targetState = selectedSong,
+        label = "SongDetailTransition",
+        transitionSpec = {
+            if (targetState != null) {
+                (slideInHorizontally { it } + fadeIn()).togetherWith(
+                    slideOutHorizontally { -it / 3 } + fadeOut())
+            } else {
+                (slideInHorizontally { -it / 3 } + fadeIn()).togetherWith(
+                    slideOutHorizontally { it } + fadeOut())
+            }
+        }
+    ) { targetState ->
+        if (targetState != null) {
+            SongDetailScreen(
+                song = targetState,
+                onBack = { selectedSong = null }
+            )
+        } else {
+            Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 contentWindowInsets = WindowInsets.navigationBars,
                 bottomBar = {
@@ -347,5 +367,6 @@ fun SongApp(
                 }
             }
         }
+    }
     }
 }
