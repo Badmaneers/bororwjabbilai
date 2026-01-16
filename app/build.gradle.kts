@@ -24,11 +24,20 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystoreFile = System.getenv("KEYSTORE_FILE") ?: "keystore.jks"
+            val signingProps = java.util.Properties()
+            val propFile = file("signing.properties")
+            if (propFile.exists()) {
+                signingProps.load(java.io.FileInputStream(propFile))
+            }
+
+            val keystoreFile = signingProps.getProperty("KEYSTORE_FILE") ?: System.getenv("KEYSTORE_FILE") ?: "keystore.jks"
             storeFile = file(keystoreFile)
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            storePassword = signingProps.getProperty("KEYSTORE_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = signingProps.getProperty("KEY_ALIAS") ?: System.getenv("KEY_ALIAS")
+            
+            // Fallback to storePassword if KEY_PASSWORD is not set (common for PKCS12)
+            val keyPass = signingProps.getProperty("KEY_PASSWORD") ?: System.getenv("KEY_PASSWORD")
+            keyPassword = keyPass ?: storePassword
         }
     }
 
