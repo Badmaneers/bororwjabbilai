@@ -53,7 +53,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.alpha
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -71,6 +70,29 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            display
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay
+        }
+
+        display?.let { d ->
+            val modes = d.supportedModes
+            val currentMode = d.mode
+            // Select mode with same resolution but highest refresh rate
+            val highestRefreshRateMode = modes
+                .filter { it.physicalWidth == currentMode.physicalWidth && it.physicalHeight == currentMode.physicalHeight }
+                .maxByOrNull { it.refreshRate }
+                
+            highestRefreshRateMode?.let { mode ->
+                val layoutParams = window.attributes
+                layoutParams.preferredDisplayModeId = mode.modeId
+                window.attributes = layoutParams
+            }
+        }
+
         setContent {
             val systemDark = isSystemInDarkTheme()
             val context = LocalContext.current
