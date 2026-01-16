@@ -13,7 +13,11 @@ A modern Android application for viewing and singing along to Boro songs. Built 
     -   **Rich Text**: HTML support for formatted lyrics.
     -   **Font Controls**: Adjustable text size for better readability.
     -   **Screen Awake**: Option to keep the screen on while singing.
-*   **Smooth Navigation**: Alphabetical filtering via swipe-up gesture and seamless tab switching.
+    -   **Gesture Navigation**: Swipe right to easily return to the song list.
+*   **Smooth Navigation**: 
+    -   **Animations**: Fluid slide and fade transitions between screens.
+    -   **Filtering**: Alphabetical filtering via swipe-up gesture.
+    -   **Tabs**: Seamless switching between Home, Favorites, and Recents.
 *   **High Performance**: Automatic support for high refresh rate displays (90Hz/120Hz).
 *   **Theme Aware**: Fully supports Dark and Light modes (system default or toggle within app).
 *   **Developer Info**: Integrated access to social links and contact information.
