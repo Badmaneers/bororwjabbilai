@@ -2,6 +2,7 @@ package com.heliactyl.bororwjabbilai.ui.screens
 
 import android.widget.TextView
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -63,8 +65,19 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
     }
 
     val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
+
+    var isBackTriggered by remember { mutableStateOf(false) }
     
     Scaffold(
+        modifier = Modifier.pointerInput(Unit) {
+            detectHorizontalDragGestures { change, dragAmount ->
+                change.consume()
+                if (!isBackTriggered && dragAmount > 20) {
+                    isBackTriggered = true
+                    onBack()
+                }
+            }
+        },
         topBar = {
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant,
