@@ -27,10 +27,10 @@ android {
 
     signingConfigs {
         create("release") {
-            val signingProps = java.util.Properties()
+            val signingProps = Properties()
             val propFile = file("signing.properties")
             if (propFile.exists()) {
-                signingProps.load(java.io.FileInputStream(propFile))
+                signingProps.load(FileInputStream(propFile))
             }
 
             val keystoreFile = signingProps.getProperty("KEYSTORE_FILE") ?: System.getenv("KEYSTORE_FILE") ?: "keystore.jks"
