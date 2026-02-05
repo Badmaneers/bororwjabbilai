@@ -205,20 +205,32 @@ fun SongApp(
                 onBack = { selectedSong = null }
             )
         } else {
-            val blurRadius by remember(sheetState) {
+            val baseBlur by animateDpAsState(
+                targetValue = if (showFilterSheet) 10.dp else 0.dp,
+                animationSpec = tween(durationMillis = 300),
+                label = "baseBlur"
+            )
+            
+            val blurFraction by remember(sheetState) {
                 derivedStateOf {
                     try {
-                        if (sheetState.isVisible) {
-                            val fraction = 1f - (sheetState.requireOffset() / screenHeightPx)
-                            10.dp * fraction.coerceIn(0f, 1f)
-                        } else {
-                            0.dp
-                        }
+                        // Calculate fraction based on sheet offset
+                        // 1.0 = fully expanded (top of screen)
+                        // 0.0 = fully hidden (bottom of screen)
+                        // If sheet is partial height, max fraction will be < 1.0, which is fine
+                        val offset = sheetState.requireOffset()
+                        val fraction = 1f - (offset / screenHeightPx)
+                        fraction.coerceIn(0f, 1f)
                     } catch (e: Exception) {
-                        0.dp
+                        // Fallback to 1f (full intensity allowed) if offset is not yet available
+                        // This ensures the animateDpAsState controls the entry animation cleanly
+                        1f
                     }
                 }
             }
+            
+            val blurRadius = baseBlur * blurFraction
+            
             Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
             Scaffold(
                 contentWindowInsets = WindowInsets.navigationBars,
