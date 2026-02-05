@@ -9,6 +9,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -60,6 +61,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -190,7 +192,8 @@ fun SongApp(
                 onBack = { selectedSong = null }
             )
         } else {
-            Box(modifier = Modifier.fillMaxSize()) {
+            val blurRadius by animateDpAsState(targetValue = if (showFilterSheet) 10.dp else 0.dp, label = "blur")
+            Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
             Scaffold(
                 contentWindowInsets = WindowInsets.navigationBars,
                 bottomBar = {
