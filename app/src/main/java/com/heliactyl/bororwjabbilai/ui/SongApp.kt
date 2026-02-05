@@ -50,8 +50,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,7 +66,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.heliactyl.bororwjabbilai.FavoritesRepository
 import com.heliactyl.bororwjabbilai.RecentsRepository
@@ -107,6 +111,11 @@ fun SongApp(
     val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
     var hasSeenSwipeTutorial by remember { mutableStateOf(prefs.getBoolean("has_seen_swipe_tutorial", false)) }
 
+    val sheetState = rememberModalBottomSheetState()
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             songs = songRepository.getSongs()
@@ -127,7 +136,10 @@ fun SongApp(
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
+        ModalBottomSheet(
+            sheetState = sheetState,
+            onDismissRequest = { showFilterSheet = false }
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -193,7 +205,20 @@ fun SongApp(
                 onBack = { selectedSong = null }
             )
         } else {
-            val blurRadius by animateDpAsState(targetValue = if (showFilterSheet) 10.dp else 0.dp, label = "blur")
+            val blurRadius by remember(sheetState) {
+                derivedStateOf {
+                    try {
+                        if (sheetState.isVisible) {
+                            val fraction = 1f - (sheetState.requireOffset() / screenHeightPx)
+                            10.dp * fraction.coerceIn(0f, 1f)
+                        } else {
+                            0.dp
+                        }
+                    } catch (e: Exception) {
+                        0.dp
+                    }
+                }
+            }
             Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
             Scaffold(
                 contentWindowInsets = WindowInsets.navigationBars,
