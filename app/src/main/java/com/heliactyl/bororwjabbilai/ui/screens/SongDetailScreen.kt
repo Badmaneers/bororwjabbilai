@@ -1,16 +1,18 @@
 package com.heliactyl.bororwjabbilai.ui.screens
 
-import android.widget.TextView
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -36,10 +38,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.text.HtmlCompat
+import androidx.compose.ui.unit.sp
+import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,18 +154,45 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            AndroidView(
-                factory = { context ->
-                    TextView(context).apply {
-                        // Initial setup
+            song.lyrics.forEach { section ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .padding(end = 8.dp),
+                        contentAlignment = Alignment.TopEnd
+                    ) {
+                        if (section.type != "chorus" && section.number != null) {
+                            Text(
+                                text = "${section.number}.",
+                                fontSize = fontSize.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                },
-                update = { textView ->
-                    textView.setTextColor(textColor)
-                    textView.textSize = fontSize
-                    textView.text = HtmlCompat.fromHtml(song.contentHtml, HtmlCompat.FROM_HTML_MODE_LEGACY)
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        section.lines.forEach { line ->
+                            Text(
+                                text = line,
+                                fontSize = fontSize.sp,
+                                lineHeight = (fontSize * 1.5).sp,
+                                fontStyle = if (section.type == "chorus") FontStyle.Italic else FontStyle.Normal,
+                                fontWeight = if (section.type == "chorus") FontWeight.SemiBold else FontWeight.Normal,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
-            )
+            }
+            // Spacer at bottom to avoid navigation bar overlap if not handled by padding
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }

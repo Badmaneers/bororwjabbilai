@@ -45,9 +45,11 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import com.heliactyl.bororwjabbilai.Song
+import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.ui.components.SocialRow
 import com.heliactyl.bororwjabbilai.ui.components.SongItem
 
@@ -83,11 +85,12 @@ fun SongListScreen(
             songs
         } else {
             val q = query.trim()
-            songs.filter {
-                it.title.contains(q, ignoreCase = true) ||
-                it.id.toString().contains(q) ||
-                it.contentHtml.contains(q, ignoreCase = true) ||
-                it.categoryChar.equals(q, ignoreCase = true)
+            songs.filter { song ->
+                val lyricsText = song.lyrics.flatMap { it.lines }.joinToString(" ")
+                song.title.contains(q, ignoreCase = true) ||
+                song.id.toString().contains(q) ||
+                lyricsText.contains(q, ignoreCase = true) ||
+                song.categoryChar.equals(q, ignoreCase = true)
             }.sortedWith(compareByDescending<Song> {
                 it.title.startsWith(q, ignoreCase = true)
             }.thenByDescending {
@@ -95,14 +98,15 @@ fun SongListScreen(
             }.thenByDescending {
                 it.categoryChar.equals(q, ignoreCase = true)
             }.thenByDescending {
-                it.contentHtml.contains(q, ignoreCase = true)
+                val lyricsText = it.lyrics.flatMap { sec -> sec.lines }.joinToString(" ")
+                lyricsText.contains(q, ignoreCase = true)
             })
         }
     }
 
-    fun getSnippet(contentHtml: String, query: String): String? {
+    fun getSnippet(lyrics: List<LyricSection>, query: String): String? {
         if (query.length < 2) return null
-        val plainText = contentHtml.replace(Regex("<[^>]*>"), " ").replace(Regex("\\s+"), " ").trim()
+        val plainText = lyrics.flatMap { it.lines }.joinToString(" ")
         val index = plainText.indexOf(query, ignoreCase = true)
         if (index == -1) return null
         
@@ -195,7 +199,7 @@ fun SongListScreen(
                     SongItem(
                         song = song, 
                         isFavorite = favoriteIds.contains(song.id),
-                        snippet = if (query.isNotBlank()) getSnippet(song.contentHtml, query) else null,
+                        snippet = if (query.isNotBlank()) getSnippet(song.lyrics, query) else null,
                         onFavoriteClick = { onFavoriteClick(song) },
                         onClick = { onSongClick(song) }
                     )
@@ -263,7 +267,7 @@ fun SongListScreen(
                     SongItem(
                         song = song,
                         isFavorite = favoriteIds.contains(song.id),
-                        snippet = if (query.isNotBlank()) getSnippet(song.contentHtml, query) else null,
+                        snippet = if (query.isNotBlank()) getSnippet(song.lyrics, query) else null,
                         onFavoriteClick = { onFavoriteClick(song) },
                         onClick = {
                             onSongClick(song)
