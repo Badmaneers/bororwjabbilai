@@ -40,6 +40,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.ImageLoader
@@ -56,7 +59,7 @@ fun SongListScreen(
     onSongClick: (Song) -> Unit,
     onFavoriteClick: (Song) -> Unit,
     isDarkTheme: Boolean,
-    onThemeCycle: () -> Unit,
+    onThemeCycle: (Offset) -> Unit,
     listState: LazyListState,
     filterChar: String? = null,
     query: String = "",
@@ -217,7 +220,18 @@ fun SongListScreen(
                     }
                 } else {
                     Row {
-                        IconButton(onClick = onThemeCycle) {
+                        var themeButtonCenter by remember { mutableStateOf(Offset.Zero) }
+                        IconButton(
+                            modifier = Modifier.onGloballyPositioned { 
+                                val rootPos = it.positionInRoot()
+                                val size = it.size
+                                themeButtonCenter = Offset(
+                                    rootPos.x + size.width / 2f,
+                                    rootPos.y + size.height / 2f
+                                )
+                            },
+                            onClick = { onThemeCycle(themeButtonCenter) }
+                        ) {
                             val icon = if (isDarkTheme) Icons.Default.NightsStay else Icons.Default.WbSunny
                             Icon(
                                 imageVector = icon,

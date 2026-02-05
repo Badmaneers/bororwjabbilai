@@ -62,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -82,7 +83,7 @@ fun SongApp(
     recentsRepository: RecentsRepository,
     favoritesRepository: FavoritesRepository,
     isDarkTheme: Boolean,
-    onThemeCycle: () -> Unit
+    onThemeCycle: (Offset) -> Unit
 ) {
     var songs by remember { mutableStateOf(emptyList<Song>()) }
     var recentIds by remember { mutableStateOf(recentsRepository.getRecentIds()) }
