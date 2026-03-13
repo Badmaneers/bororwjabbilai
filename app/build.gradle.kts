@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.heliactyl.bororwjabbilai"
-        minSdk = 23
+        minSdk = 21
         targetSdk = 36
         versionCode = 2
         versionName = "1.2.0"
