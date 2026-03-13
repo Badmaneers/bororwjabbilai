@@ -17,10 +17,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.foundation.text.selection.SelectionContainer
+import android.content.Intent
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -44,6 +48,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
+
+fun shareLyrics(context: android.content.Context, song: Song, textToShare: String? = null) {
+    val shareText = if (textToShare != null) {
+        "\"$textToShare\"\n\n— From: ${song.title}"
+    } else {
+        val fullLyrics = song.lyrics.joinToString("\n\n") { section ->
+            val numberPrefix = if (section.type != "chorus" && section.number != null) "${section.number}. " else ""
+            val linesText = section.lines.joinToString("\n")
+            "$numberPrefix$linesText"
+        }
+        "Song Title: ${song.title}\n\n$fullLyrics\n\nShared from Boro Rwjab Bilai App"
+    }
+
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, shareText)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share Lyrics"))
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +102,17 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
                     isBackTriggered = true
                     onBack()
                 }
+            }
+        },
+        floatingActionButton = {
+            IconButton(
+                onClick = { shareLyrics(context, song, null) }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = "Share Song",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         },
         topBar = {
@@ -154,39 +188,43 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            song.lyrics.forEach { section ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(40.dp)
-                            .padding(end = 8.dp),
-                        contentAlignment = Alignment.TopEnd
-                    ) {
-                        if (section.type != "chorus" && section.number != null) {
-                            Text(
-                                text = "${section.number}.",
-                                fontSize = fontSize.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    
-                    Column(modifier = Modifier.weight(1f)) {
-                        section.lines.forEach { line ->
-                            Text(
-                                text = line,
-                                fontSize = fontSize.sp,
-                                lineHeight = (fontSize * 1.5).sp,
-                                fontStyle = if (section.type == "chorus") FontStyle.Italic else FontStyle.Normal,
-                                fontWeight = if (section.type == "chorus") FontWeight.SemiBold else FontWeight.Normal,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+            SelectionContainer {
+                Column {
+                    song.lyrics.forEach { section ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(40.dp)
+                                    .padding(end = 8.dp),
+                                contentAlignment = Alignment.TopEnd
+                            ) {
+                                if (section.type != "chorus" && section.number != null) {
+                                    Text(
+                                        text = "${section.number}.",
+                                        fontSize = fontSize.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            
+                            Column(modifier = Modifier.weight(1f)) {
+                                section.lines.forEach { line ->
+                                    Text(
+                                        text = line,
+                                        fontSize = fontSize.sp,
+                                        lineHeight = (fontSize * 1.5).sp,
+                                        fontStyle = if (section.type == "chorus") FontStyle.Italic else FontStyle.Normal,
+                                        fontWeight = if (section.type == "chorus") FontWeight.SemiBold else FontWeight.Normal,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
                         }
                     }
                 }
