@@ -13,6 +13,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -76,6 +78,8 @@ import com.heliactyl.bororwjabbilai.Song
 import com.heliactyl.bororwjabbilai.SongRepository
 import com.heliactyl.bororwjabbilai.ui.screens.SongDetailScreen
 import com.heliactyl.bororwjabbilai.ui.screens.SongListScreen
+import com.heliactyl.bororwjabbilai.ui.Occasion
+import com.heliactyl.bororwjabbilai.ui.occasionFilters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -102,6 +106,7 @@ fun SongApp(
     val favoritesListState = rememberLazyListState()
     
     var filterChar by remember { mutableStateOf<String?>(null) }
+    var filterOccasion by remember { mutableStateOf<Occasion?>(null) }
     var showFilterSheet by remember { mutableStateOf(false) }
 
     var query by rememberSaveable { mutableStateOf("") }
@@ -111,7 +116,7 @@ fun SongApp(
     val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
     var hasSeenSwipeTutorial by remember { mutableStateOf(prefs.getBoolean("has_seen_swipe_tutorial", false)) }
 
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
@@ -140,45 +145,129 @@ fun SongApp(
             sheetState = sheetState,
             onDismissRequest = { showFilterSheet = false }
         ) {
+            val filterPagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
+            
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                androidx.compose.material3.TabRow(
+                    selectedTabIndex = filterPagerState.currentPage,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Select Letter Filter", style = MaterialTheme.typography.titleMedium)
-                    if (filterChar != null) {
-                        TextButton(onClick = { 
-                            filterChar = null
-                            showFilterSheet = false
-                        }) {
-                            Text("Clear")
-                        }
-                    }
+                    androidx.compose.material3.Tab(
+                        selected = filterPagerState.currentPage == 0,
+                        onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(0) } },
+                        text = { Text("Letter") }
+                    )
+                    androidx.compose.material3.Tab(
+                        selected = filterPagerState.currentPage == 1,
+                        onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(1) } },
+                        text = { Text("Category") }
+                    )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                val chars = ('A'..'Z').map { it.toString() } + "@"
-                
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    chars.forEach { char ->
-                        FilterChip(
-                            selected = filterChar == char,
-                            onClick = { 
-                                filterChar = if (filterChar == char) null else char
-                                showFilterSheet = false
-                            },
-                            label = { Text(char) }
-                        )
+
+                HorizontalPager(
+                    state = filterPagerState,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 450.dp).animateContentSize()
+                ) { page ->
+                    when (page) {
+                        0 -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Select Letter Filter", style = MaterialTheme.typography.titleMedium)
+                                    if (filterChar != null) {
+                                        TextButton(onClick = { 
+                                            filterChar = null
+                                            showFilterSheet = false
+                                        }) {
+                                            Text("Clear")
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                val chars = ('A'..'Z').map { it.toString() } + "@"
+                                
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    chars.forEach { char ->
+                                        FilterChip(
+                                            selected = filterChar == char,
+                                            onClick = { 
+                                                filterChar = if (filterChar == char) null else char
+                                                filterOccasion = null
+                                                showFilterSheet = false
+                                            },
+                                            label = { Text(char) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        1 -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Select Category", style = MaterialTheme.typography.titleMedium)
+                                    if (filterOccasion != null) {
+                                        TextButton(onClick = { 
+                                            filterOccasion = null
+                                            showFilterSheet = false
+                                        }) {
+                                            Text("Clear")
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                androidx.compose.foundation.lazy.LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(occasionFilters.size) { index ->
+                                        val occasion = occasionFilters[index]
+                                        androidx.compose.material3.Surface(
+                                            onClick = { 
+                                                filterOccasion = if (filterOccasion == occasion) null else occasion
+                                                filterChar = null
+                                                showFilterSheet = false
+                                            },
+                                            shape = MaterialTheme.shapes.small,
+                                            color = if (filterOccasion == occasion) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(
+                                                text = occasion.name,
+                                                modifier = Modifier.padding(16.dp),
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = if (filterOccasion == occasion) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(32.dp))
@@ -326,6 +415,7 @@ fun SongApp(
                                 onThemeCycle = onThemeCycle,
                                 listState = homeListState,
                                 filterChar = filterChar,
+                                filterOccasion = filterOccasion,
                                 query = query,
                                 onQueryChange = { query = it },
                                 active = active,

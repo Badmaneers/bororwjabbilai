@@ -49,6 +49,7 @@ import androidx.compose.ui.zIndex
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import com.heliactyl.bororwjabbilai.Song
+import com.heliactyl.bororwjabbilai.ui.Occasion
 import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.ui.components.SocialRow
 import com.heliactyl.bororwjabbilai.ui.components.SongItem
@@ -64,6 +65,7 @@ fun SongListScreen(
     onThemeCycle: (Offset) -> Unit,
     listState: LazyListState,
     filterChar: String? = null,
+    filterOccasion: Occasion? = null,
     query: String = "",
     onQueryChange: (String) -> Unit = {},
     active: Boolean = false,
@@ -71,8 +73,10 @@ fun SongListScreen(
 ) {
     var showInfoDialog by remember { mutableStateOf(false) }
 
-    val filteredSongs = remember(query, songs, filterChar) {
-        if (filterChar != null) {
+    val filteredSongs = remember(query, songs, filterChar, filterOccasion) {
+        if (filterOccasion != null) {
+            songs.filter { it.id in filterOccasion.range }
+        } else if (filterChar != null) {
             val q = filterChar
             if (q == "@") {
                 songs.filter { !it.categoryChar[0].isLetter() }
