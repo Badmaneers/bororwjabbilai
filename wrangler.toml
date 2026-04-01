@@ -1,0 +1,8 @@
+name = "boro-rwjab-bilai-web"
+main = "cloudflare/worker.js"
+compatibility_date = "2026-04-01"
+workers_dev = true
+
+[assets]
+directory = "./web"
+binding = "ASSETS"

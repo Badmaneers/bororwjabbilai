@@ -56,3 +56,34 @@ serve -l 8080
 2. Disable network.
 3. Reload app; cached shell should load.
 4. Navigate to an uncached route and confirm `offline.html` fallback appears.
+
+## Deploy to Cloudflare Workers
+
+This repo is preconfigured for Workers static assets hosting:
+
+- `wrangler.toml` at repo root
+- Worker entrypoint at `cloudflare/worker.js`
+- Static app directory `web/`
+
+### 1) Install and login
+
+```bash
+npm i -g wrangler
+wrangler login
+```
+
+### 2) Deploy
+
+Run from repository root:
+
+```bash
+wrangler deploy
+```
+
+Wrangler will output your Worker URL (for example `https://boro-rwjab-bilai-web.<subdomain>.workers.dev`).
+
+### 3) Verify install + offline
+
+1. Open the deployed URL in Chrome (Android) or Safari (iOS).
+2. Install to home screen.
+3. Load once online, then disable network and reopen to verify offline behavior.
