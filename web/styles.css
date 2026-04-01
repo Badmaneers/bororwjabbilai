@@ -1,5 +1,7 @@
 :root {
   color-scheme: light dark;
+  --spring-snappy: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring-soft: cubic-bezier(0.2, 0.9, 0.2, 1);
   --page-bg: #d9e5ff;
   --bg-start: #edf2ff;
   --bg-end: #d9e5ff;
@@ -219,6 +221,18 @@ body::before {
   align-items: center;
   gap: 4px;
   padding: 0 8px 0 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.search-bar::after {
+  content: "";
+  position: absolute;
+  inset: -35% -20%;
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0) 36%, rgba(255, 255, 255, 0.28) 50%, rgba(255, 255, 255, 0) 64%);
+  transform: translateX(-48%);
+  animation: liquidSheen 6.4s linear infinite;
+  pointer-events: none;
 }
 
 .leading-icon {
@@ -274,13 +288,14 @@ input[type="search"]::-ms-reveal {
   display: grid;
   place-items: center;
   font-size: 18px;
-  transition: transform 160ms ease, background 160ms ease;
+  transition: transform 240ms var(--spring-snappy), background 220ms var(--spring-soft), box-shadow 220ms var(--spring-soft);
 }
 
 .search-icon-btn:active,
 .icon-btn:active {
   background: rgba(255, 255, 255, 0.22);
-  transform: scale(0.95);
+  transform: scale(0.92);
+  animation: liquidTapBounce 260ms var(--spring-snappy);
 }
 
 .ios-tip {
@@ -315,6 +330,23 @@ body.filter-open #mainView {
   backdrop-filter: blur(20px) saturate(165%);
   -webkit-backdrop-filter: blur(20px) saturate(165%);
   animation: cardIn 360ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  transition: transform 260ms var(--spring-soft), box-shadow 260ms var(--spring-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.song-card::after {
+  content: "";
+  position: absolute;
+  inset: -55% -35%;
+  background: linear-gradient(105deg, rgba(255, 255, 255, 0) 34%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0) 66%);
+  transform: translateX(-62%);
+  animation: liquidSheen 7.2s linear infinite;
+  pointer-events: none;
+}
+
+.song-card:active {
+  transform: scale(0.988);
 }
 
 .song-top {
@@ -448,7 +480,7 @@ body.filter-open #mainView {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  transition: transform 300ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  transition: transform 320ms var(--spring-snappy);
 }
 
 .tab-btn:active {
@@ -461,7 +493,7 @@ body.filter-open #mainView {
   border-radius: 17px;
   display: grid;
   place-items: center;
-  transition: all 280ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  transition: all 300ms var(--spring-snappy);
 }
 
 .tab-icon {
@@ -470,7 +502,7 @@ body.filter-open #mainView {
   width: 18px;
   height: 18px;
   color: var(--text-soft);
-  transition: transform 250ms ease, color 250ms ease;
+  transition: transform 280ms var(--spring-snappy), color 250ms ease;
 }
 
 .tab-icon .icon-svg {
@@ -482,7 +514,7 @@ body.filter-open #mainView {
   font-size: 12px;
   color: var(--text-soft);
   font-weight: 600;
-  transition: color 250ms ease, opacity 250ms ease;
+  transition: color 250ms ease, opacity 260ms var(--spring-soft);
 }
 
 .tab-btn.active .tab-indicator {
@@ -583,6 +615,9 @@ body.filter-open #mainView {
 
 .filter-modal .modal-content {
   transition: transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1), opacity 240ms ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .filter-modal.filter-open-swipe .modal-content {
@@ -603,6 +638,18 @@ body.filter-open #mainView {
   padding: 14px;
   max-height: 80dvh;
   overflow: auto;
+  position: relative;
+}
+
+.modal-content::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 42px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+  pointer-events: none;
 }
 
 .modal-header {
@@ -616,6 +663,15 @@ body.filter-open #mainView {
   margin: -14px -14px 10px;
   padding: 14px;
   border-bottom: 1px solid var(--glass-stroke);
+}
+
+.filter-modal .modal-header {
+  position: relative;
+  top: auto;
+  z-index: 3;
+  flex-shrink: 0;
+  margin: -14px -14px 0;
+  border-bottom: 0;
 }
 
 .modal-header h2 {
@@ -637,6 +693,21 @@ body.filter-open #mainView {
   overflow-x: auto;
 }
 
+.filter-modal .modal-tabs {
+  position: relative;
+  top: auto;
+  z-index: 3;
+  flex-shrink: 0;
+  margin: 0 -14px 10px;
+  padding-top: 10px;
+}
+
+.filter-pane {
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .modal-tab,
 .chip-btn,
 .letter-btn,
@@ -648,6 +719,15 @@ body.filter-open #mainView {
   background: rgba(241, 246, 255, 0.72);
   color: var(--text);
   white-space: nowrap;
+  transition: transform 240ms var(--spring-snappy), background 220ms var(--spring-soft), box-shadow 220ms var(--spring-soft);
+}
+
+.modal-tab:active,
+.chip-btn:active,
+.letter-btn:active,
+.category-btn:active {
+  transform: scale(0.94);
+  animation: liquidTapBounce 250ms var(--spring-snappy);
 }
 
 .modal-tab.active,
@@ -793,6 +873,36 @@ body.filter-open #mainView {
   margin-top: 14px;
 }
 
+.effects-row {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(146, 169, 214, 0.28);
+  background: rgba(242, 247, 255, 0.66);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.effects-label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.effects-toggle {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-strong);
+}
+
+.effects-status {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
 .info-modal .chip-btn {
   border-radius: 14px;
   padding-inline: 18px;
@@ -848,9 +958,22 @@ body.filter-open #mainView {
   100% { transform: translateY(0) scale(1); }
 }
 
+@keyframes liquidTapBounce {
+  0% { transform: scale(0.92); }
+  55% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
 @keyframes cardIn {
   from { opacity: 0; transform: translateY(8px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes liquidSheen {
+  0% { transform: translateX(-66%); opacity: 0; }
+  10% { opacity: 0.95; }
+  42% { opacity: 0.26; }
+  100% { transform: translateX(66%); opacity: 0; }
 }
 
 @keyframes filterSheetPullUp {
@@ -962,4 +1085,69 @@ body.filter-open #mainView {
 :root[data-theme="dark"] .social-link {
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.14);
+}
+
+:root[data-effects="off"] .search-bar::after,
+:root[data-effects="off"] .song-card::after,
+:root[data-effects="off"] .theme-transition-layer,
+:root[data-effects="off"] .theme-wave {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+:root[data-effects="off"] .tab-btn,
+:root[data-effects="off"] .tab-indicator,
+:root[data-effects="off"] .tab-icon,
+:root[data-effects="off"] .tab-label,
+:root[data-effects="off"] .song-card,
+:root[data-effects="off"] .search-icon-btn,
+:root[data-effects="off"] .icon-btn,
+:root[data-effects="off"] .modal-tab,
+:root[data-effects="off"] .chip-btn,
+:root[data-effects="off"] .letter-btn,
+:root[data-effects="off"] .category-btn,
+:root[data-effects="off"] .modal-content,
+:root[data-effects="off"] .filter-modal .modal-content,
+:root[data-effects="off"] .filter-modal.filter-open-swipe .modal-content,
+:root[data-effects="off"] .filter-modal.filter-open-button .modal-content {
+  transition: none !important;
+  animation: none !important;
+}
+
+:root[data-effects="off"] .search-bar,
+:root[data-effects="off"] .song-card,
+:root[data-effects="off"] .bottom-nav,
+:root[data-effects="off"] .modal-content,
+:root[data-effects="off"] .detail-header,
+:root[data-effects="off"] .empty-state {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+:root[data-theme="dark"] .effects-row {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-bar::after,
+  .song-card::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .tab-btn,
+  .tab-indicator,
+  .tab-icon,
+  .tab-label,
+  .song-card,
+  .search-icon-btn,
+  .icon-btn,
+  .modal-tab,
+  .chip-btn,
+  .letter-btn,
+  .category-btn,
+  .modal-content {
+    transition: none;
+  }
 }

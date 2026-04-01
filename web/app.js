@@ -74,6 +74,9 @@ const state = {
   favoriteIds: loadIdList("favoriteSongIds"),
   recentIds: loadIdList("recentSongIds"),
   themeMode: localStorage.getItem("themeMode") || "system",
+  reduceEffectsManual: localStorage.getItem("reduceEffectsManual") === "true",
+  autoReducedEffects: false,
+  effectsReduced: false,
   deferredInstallPrompt: null,
   wakeLock: null,
   searchRenderTimer: null
@@ -102,6 +105,8 @@ const elements = {
   closeFilterBtn: document.getElementById("closeFilterBtn"),
   infoModal: document.getElementById("infoModal"),
   closeInfoBtn: document.getElementById("closeInfoBtn"),
+  effectsToggle: document.getElementById("effectsToggle"),
+  effectsStatus: document.getElementById("effectsStatus"),
   nativePromptModal: document.getElementById("nativePromptModal"),
   downloadNativeBtn: document.getElementById("downloadNativeBtn"),
   continueWebBtn: document.getElementById("continueWebBtn"),
@@ -114,11 +119,13 @@ const elements = {
 init();
 
 async function init() {
+  applyEffectsMode();
   applyTheme();
   applyFontSize();
   buildFilterControls();
   wireEvents();
   setupGestureSupport();
+  setupAutoEffectsWatchers();
   syncSearchActions();
   showIosInstallTipIfNeeded();
   await loadSongs();
@@ -255,6 +262,16 @@ function wireEvents() {
 
   elements.infoBtn.addEventListener("click", () => elements.infoModal.classList.remove("hidden"));
   elements.closeInfoBtn.addEventListener("click", () => elements.infoModal.classList.add("hidden"));
+  elements.effectsToggle?.addEventListener("change", (event) => {
+    state.reduceEffectsManual = Boolean(event.target.checked);
+    localStorage.setItem("reduceEffectsManual", String(state.reduceEffectsManual));
+    applyEffectsMode();
+  });
+  elements.infoModal.addEventListener("click", (event) => {
+    if (event.target === elements.infoModal) {
+      elements.infoModal.classList.add("hidden");
+    }
+  });
 
   elements.downloadNativeBtn?.addEventListener("click", async () => {
     const downloadBtn = elements.downloadNativeBtn;
@@ -603,7 +620,7 @@ function animateThemeModeChange(nextThemeMode) {
   const currentUseDark = resolveDarkModeFor(state.themeMode);
   const nextUseDark = resolveDarkModeFor(nextThemeMode);
 
-  if (!transitionLayer || prefersReducedMotion) {
+  if (!transitionLayer || prefersReducedMotion || state.effectsReduced) {
     state.themeMode = nextThemeMode;
     localStorage.setItem("themeMode", nextThemeMode);
     applyTheme();
@@ -646,6 +663,77 @@ function applyTheme() {
   const themeMeta = document.querySelector('meta[name="theme-color"]');
   if (themeMeta) {
     themeMeta.setAttribute("content", useDark ? "#0b111c" : "#edf2ff");
+  }
+}
+
+function detectAutoReducedEffects() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return true;
+  }
+
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  let score = 0;
+
+  if (connection?.saveData) score += 2;
+
+  const effectiveType = String(connection?.effectiveType || "").toLowerCase();
+  if (effectiveType === "slow-2g" || effectiveType === "2g") score += 2;
+  else if (effectiveType === "3g") score += 1;
+
+  const deviceMemory = Number(navigator.deviceMemory || 0);
+  if (deviceMemory > 0 && deviceMemory <= 2) score += 2;
+  else if (deviceMemory > 0 && deviceMemory <= 4) score += 1;
+
+  const cpuCores = Number(navigator.hardwareConcurrency || 0);
+  if (cpuCores > 0 && cpuCores <= 2) score += 2;
+  else if (cpuCores > 0 && cpuCores <= 4) score += 1;
+
+  return score >= 2;
+}
+
+function applyEffectsMode() {
+  state.autoReducedEffects = detectAutoReducedEffects();
+  state.effectsReduced = state.reduceEffectsManual || state.autoReducedEffects;
+  document.documentElement.dataset.effects = state.effectsReduced ? "off" : "on";
+  syncEffectsUi();
+}
+
+function syncEffectsUi() {
+  if (elements.effectsToggle) {
+    elements.effectsToggle.checked = state.reduceEffectsManual;
+  }
+
+  if (!elements.effectsStatus) return;
+
+  if (state.reduceEffectsManual) {
+    elements.effectsStatus.textContent = "Manual mode: heavy effects reduced.";
+    return;
+  }
+
+  elements.effectsStatus.textContent = state.autoReducedEffects
+    ? "Auto mode: reduced effects enabled for this device."
+    : "Auto mode: full effects enabled.";
+}
+
+function setupAutoEffectsWatchers() {
+  const motionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const recheck = () => {
+    if (state.reduceEffectsManual) {
+      syncEffectsUi();
+      return;
+    }
+    applyEffectsMode();
+  };
+
+  if (typeof motionMedia.addEventListener === "function") {
+    motionMedia.addEventListener("change", recheck);
+  } else if (typeof motionMedia.addListener === "function") {
+    motionMedia.addListener(recheck);
+  }
+
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (connection && typeof connection.addEventListener === "function") {
+    connection.addEventListener("change", recheck);
   }
 }
 

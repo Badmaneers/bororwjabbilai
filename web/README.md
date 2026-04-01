@@ -2,6 +2,17 @@
 
 This folder contains a Progressive Web App version of the Android app.
 
+## UX Performance Controls
+
+- Manual toggle: **Developer Info → Reduce heavy effects**
+- Automatic detection: enables reduced effects on constrained devices/networks based on:
+	- `prefers-reduced-motion`
+	- `Save-Data` / slow connection type
+	- low `deviceMemory`
+	- low `hardwareConcurrency`
+
+Manual toggle always overrides automatic detection.
+
 ## Files
 
 - `index.html` - App shell and UI structure

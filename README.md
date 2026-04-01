@@ -4,6 +4,8 @@
 
 A modern Android application for viewing and singing along to Boro songs. Built with **Kotlin** and **Jetpack Compose**, focusing on a clean Material 3 interface and smooth user experience.
 
+This repository also includes a **Web PWA** version in `web/`, deployable on **Cloudflare Workers**.
+
 ## ✨ Features
 
 *   **Song Library**: Browse a comprehensive collection of Boro songs (loaded locally from JSON).
@@ -69,6 +71,47 @@ You can build the project using the included Gradle wrapper:
 # Run Android Tests
 ./gradlew connectedAndroidTest
 ```
+
+## 🌐 Web PWA (Installable + Offline)
+
+The web app lives in the `web/` folder and supports:
+
+- Home screen install (Android Chrome / iOS Safari)
+- Offline usage with a service worker cache
+- Favorites, recents, search, filters, and theme toggle
+- Motion/effects control (manual "Reduce heavy effects" toggle + automatic low-end device detection)
+
+### Run locally
+
+```bash
+cd web
+python3 -m http.server 8080
+```
+
+Then open `http://localhost:8080`.
+
+## ☁️ Deploy Web App to Cloudflare Workers
+
+This repo is preconfigured with:
+
+- `wrangler.toml`
+- `cloudflare/worker.js`
+- static assets from `web/`
+
+### Deploy
+
+From repository root:
+
+```bash
+npx wrangler login
+npx wrangler deploy
+```
+
+Deployed URL:
+
+- `https://boro-rwjab-bilai-web.dukebraham24.workers.dev`
+
+For detailed web-only docs, see `web/README.md`.
 
 ## 🐛 Bug Fixing & Reporting
 
