@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Boro Rwjab Bilai" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <title>Boro Rwjab Bilai</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <svg class="icon-sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M16 16l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24">
+      <path d="M6 6l12 12M18 6l-12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24">
+      <path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.2 2.2M16.9 16.9l2.2 2.2M19.1 4.9l-2.2 2.2M7.1 16.9l-2.2 2.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24">
+      <path d="M14.5 2.7a8.9 8.9 0 1010.8 10.8A9.8 9.8 0 0114.5 2.7z" fill="currentColor"/>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="12" cy="8" r="1.2" fill="currentColor"/>
+      <path d="M12 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M4 8l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24">
+      <path d="M12 4v10M8 10l4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24">
+      <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M8 10V7a4 4 0 118 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-lock-open" viewBox="0 0 24 24">
+      <rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M16 10V7a4 4 0 00-8 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24">
+      <path d="M12 20s-7-4.4-9.1-8A5.2 5.2 0 0112 5a5.2 5.2 0 019.1 7c-2.1 3.6-9.1 8-9.1 8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-heart-fill" viewBox="0 0 24 24">
+      <path d="M12 20s-7-4.4-9.1-8A5.2 5.2 0 0112 5a5.2 5.2 0 019.1 7c-2.1 3.6-9.1 8-9.1 8z" fill="currentColor"/>
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 24 24">
+      <path d="M4 11l8-6 8 6M6.5 9.5V19h11V9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-history" viewBox="0 0 24 24">
+      <path d="M4 5v5h5M20 12a8 8 0 10-2.3 5.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12 8v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24">
+      <path d="M7 4h10a1 1 0 011 1v15l-6-3.8L6 20V5a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+  </svg>
+  <div id="app" class="app-shell">
+    <header class="top-bar">
+      <div class="search-bar">
+        <span class="leading-icon" aria-hidden="true"><svg class="icon-svg"><use href="#i-search"></use></svg></span>
+        <input id="searchInput" type="search" placeholder="Search song by number or title" autocomplete="off" />
+        <button id="clearSearchBtn" class="search-icon-btn hidden" aria-label="Clear search"><svg class="icon-svg"><use href="#i-close"></use></svg></button>
+        <button id="filterBtn" class="search-icon-btn" aria-label="Filter"><svg class="icon-svg"><use href="#i-filter"></use></svg></button>
+        <button id="themeBtn" class="search-icon-btn" aria-label="Toggle theme"><svg class="icon-svg"><use href="#i-sun"></use></svg></button>
+        <button id="infoBtn" class="search-icon-btn" aria-label="Developer info"><svg class="icon-svg"><use href="#i-info"></use></svg></button>
+        <button id="installBtn" class="search-icon-btn hidden" aria-label="Install app"><svg class="icon-svg"><use href="#i-download"></use></svg></button>
+      </div>
+      <div id="iosInstallTip" class="ios-tip hidden"></div>
+    </header>
+
+    <main id="mainView" class="list-view"></main>
+
+    <section id="detailView" class="detail-view hidden" aria-hidden="true">
+      <header class="detail-header">
+        <button id="backBtn" class="icon-btn" aria-label="Back"><svg class="icon-svg"><use href="#i-arrow-left"></use></svg></button>
+        <h1 id="detailTitle"></h1>
+        <div class="detail-controls">
+          <button id="fontDownBtn" class="icon-btn" aria-label="Decrease font">A-</button>
+          <button id="fontUpBtn" class="icon-btn" aria-label="Increase font">A+</button>
+          <button id="wakeBtn" class="icon-btn" aria-label="Keep screen awake"><svg class="icon-svg"><use href="#i-lock-open"></use></svg></button>
+        </div>
+      </header>
+      <article id="lyricsContainer" class="lyrics"></article>
+    </section>
+
+    <nav class="bottom-nav">
+      <button class="tab-btn" data-tab="saved">
+        <span class="tab-indicator"><span class="tab-icon"><svg class="icon-svg"><use href="#i-heart"></use></svg></span></span>
+        <span class="tab-label">Saved</span>
+      </button>
+      <button class="tab-btn active" data-tab="home">
+        <span class="tab-indicator"><span class="tab-icon"><svg class="icon-svg"><use href="#i-home"></use></svg></span></span>
+        <span class="tab-label">Home</span>
+      </button>
+      <button class="tab-btn" data-tab="recents">
+        <span class="tab-indicator"><span class="tab-icon"><svg class="icon-svg"><use href="#i-history"></use></svg></span></span>
+        <span class="tab-label">Recents</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="filterModal" class="modal filter-modal hidden" role="dialog" aria-modal="true" aria-labelledby="filterTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="filterTitle">Filter Songs</h2>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-filter-tab="letter">Letter</button>
+        <button class="modal-tab" data-filter-tab="category">Category</button>
+        <button id="clearFilterBtn" class="modal-tab modal-tab-action">Clear</button>
+        <button id="closeFilterBtn" class="modal-tab modal-tab-action">Close</button>
+      </div>
+      <div id="letterPane" class="filter-pane"></div>
+      <div id="categoryPane" class="filter-pane hidden"></div>
+    </div>
+  </div>
+
+  <div id="infoModal" class="modal info-modal hidden" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="modal-content info-card">
+      <div class="info-card-head">
+        <h2 id="infoTitle">Developer Info</h2>
+        <p>Connect with the app creator</p>
+      </div>
+      <ul class="social-list">
+        <li>
+          <a class="social-link" href="https://instagram.com/heliactyl" target="_blank" rel="noreferrer">
+            <span class="social-badge"><img class="social-icon" src="./icons/social/instagram.svg" alt="Instagram" /></span>
+            <span class="social-copy">
+              <span class="social-title">Instagram</span>
+              <span class="social-handle">@heliactyl</span>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a class="social-link" href="https://t.me/dumbdragon" target="_blank" rel="noreferrer">
+            <span class="social-badge"><img class="social-icon" src="./icons/social/telegram.svg" alt="Telegram" /></span>
+            <span class="social-copy">
+              <span class="social-title">Telegram</span>
+              <span class="social-handle">@dumbdragon</span>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a class="social-link" href="https://github.com/Badmaneers" target="_blank" rel="noreferrer">
+            <span class="social-badge"><img class="social-icon" src="./icons/social/github.svg" alt="GitHub" /></span>
+            <span class="social-copy">
+              <span class="social-title">GitHub</span>
+              <span class="social-handle">Badmaneers</span>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a class="social-link" href="mailto:dukebraham24@gmail.com">
+            <span class="social-badge"><svg class="icon-svg"><use href="#i-mail"></use></svg></span>
+            <span class="social-copy">
+              <span class="social-title">Email</span>
+              <span class="social-handle">dukebraham24@gmail.com</span>
+            </span>
+          </a>
+        </li>
+      </ul>
+      <div class="modal-actions">
+        <button id="closeInfoBtn" class="chip-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="nativePromptModal" class="modal native-prompt hidden" role="dialog" aria-modal="true" aria-labelledby="nativePromptTitle">
+    <div class="modal-content native-card">
+      <h2 id="nativePromptTitle">Get the Android App</h2>
+      <p class="native-copy">For the best experience on Android, install the native app from Releases.</p>
+      <div class="native-actions">
+        <button id="downloadNativeBtn" class="chip-btn native-btn-primary">Download Native App</button>
+        <button id="continueWebBtn" class="chip-btn">Continue Web App</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="themeTransition" class="theme-transition-layer" aria-hidden="true">
+    <span class="theme-wave wave-a"></span>
+    <span class="theme-wave wave-b"></span>
+    <span class="theme-wave wave-c"></span>
+  </div>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
