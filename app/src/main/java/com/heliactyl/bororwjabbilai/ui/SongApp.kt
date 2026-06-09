@@ -2,15 +2,8 @@ package com.heliactyl.bororwjabbilai.ui
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -32,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -78,6 +72,7 @@ fun SongApp(
 ) {
     val context = LocalContext.current
     val customSongRepository = remember { com.heliactyl.bororwjabbilai.CustomSongRepository(context) }
+    val updateManager = remember { com.heliactyl.bororwjabbilai.UpdateManager(context) }
     
     var songs by remember { mutableStateOf(emptyList<Song>()) }
     var customSongs by remember { mutableStateOf(customSongRepository.getCustomSongs()) }
@@ -106,6 +101,7 @@ fun SongApp(
     var showFilterSheet by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
     var updateRelease by remember { mutableStateOf<com.heliactyl.bororwjabbilai.GitHubRelease?>(null) }
+    var downloadProgress by remember { mutableFloatStateOf(-1f) }
 
     var query by rememberSaveable { mutableStateOf("") }
     var active by rememberSaveable { mutableStateOf(false) }
@@ -119,10 +115,10 @@ fun SongApp(
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
 
     LaunchedEffect(Unit) {
+        updateManager.clearCache() // Cleanup old APKs on startup
         withContext(Dispatchers.IO) {
             songs = songRepository.getSongs()
         }
-        val updateManager = com.heliactyl.bororwjabbilai.UpdateManager(context)
         updateRelease = updateManager.checkForUpdate()
     }
 
@@ -528,8 +524,12 @@ fun SongApp(
 
     updateRelease?.let { release ->
         Dialog(
-            onDismissRequest = { updateRelease = null },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
+            onDismissRequest = { if (downloadProgress < 0f) updateRelease = null },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = downloadProgress < 0f,
+                dismissOnClickOutside = downloadProgress < 0f
+            )
         ) {
             Box(
                 modifier = Modifier
@@ -545,50 +545,85 @@ fun SongApp(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "New Update Available!",
+                        text = if (downloadProgress >= 0f) "Downloading Update..." else "New Update Available!",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Text(
-                        text = "Version ${release.tagName} is now available. Here's what's new:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
                     
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 200.dp)
-                            .background(Color.Black.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                            .padding(12.dp)
-                    ) {
-                        val scroll = rememberScrollState()
-                        Text(
-                            text = release.body,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.verticalScroll(scroll)
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(onClick = { updateRelease = null }) {
-                            Text("Later")
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Button(
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(release.htmlUrl))
-                                context.startActivity(intent)
-                                updateRelease = null
-                            }
+                    if (downloadProgress >= 0f) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Update Now")
+                            LinearProgressIndicator(
+                                progress = { downloadProgress },
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            )
+                            Text(
+                                text = "${(downloadProgress * 100).toInt()}%",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "Version ${release.tagName} is now available. Here's what's new:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 200.dp)
+                                .background(Color.Black.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            val scroll = rememberScrollState()
+                            Text(
+                                text = release.body,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.verticalScroll(scroll)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(onClick = { updateRelease = null }) {
+                                Text("Later")
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    val apkAsset = release.assets.find { it.name.endsWith(".apk") }
+                                    if (apkAsset != null) {
+                                        coroutineScope.launch {
+                                            downloadProgress = 0f
+                                            updateManager.downloadApk(apkAsset.downloadUrl).collect { progress ->
+                                                downloadProgress = progress
+                                            }
+                                            downloadProgress = 1f
+                                            updateManager.installApk()
+                                            // Dialog will remain until user installs or app restarts
+                                        }
+                                    } else {
+                                        // Fallback to browser if no APK found in assets
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(release.htmlUrl))
+                                        context.startActivity(intent)
+                                        updateRelease = null
+                                    }
+                                }
+                            ) {
+                                Text("Update Now")
+                            }
                         }
                     }
                 }
@@ -596,38 +631,336 @@ fun SongApp(
         }
     }
 
-    AnimatedContent(
-        targetState = selectedSong,
-        label = "SongDetailTransition",
-        transitionSpec = {
-            if (targetState != null) {
-                (slideInHorizontally { it } + fadeIn()).togetherWith(
-                    slideOutHorizontally { -it / 3 } + fadeOut())
-            } else {
-                (slideInHorizontally { -it / 3 } + fadeIn()).togetherWith(
-                    slideOutHorizontally { it } + fadeOut())
+    // Interactive Detail State
+    val detailSong = remember { mutableStateOf<Song?>(null) }
+    LaunchedEffect(selectedSong) {
+        if (selectedSong != null) detailSong.value = selectedSong
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        val baseBlur by animateDpAsState(
+            targetValue = if (showFilterSheet || showInfoDialog || updateRelease != null) 10.dp else 0.dp,
+            animationSpec = tween(durationMillis = 300),
+            label = "baseBlur"
+        )
+        
+        val blurFraction by remember(sheetState, showInfoDialog, updateRelease) {
+            derivedStateOf {
+                if (showInfoDialog || updateRelease != null) return@derivedStateOf 1f
+                try {
+                    val offset = sheetState.requireOffset()
+                    val fraction = 1f - (offset / screenHeightPx)
+                    fraction.coerceIn(0f, 1f)
+                } catch (e: Exception) {
+                    1f
+                }
             }
         }
-    ) { targetState ->
-        if (targetState != null) {
-            SongDetailScreen(
-                song = targetState,
-                onBack = { selectedSong = null },
-                onEdit = { songToEdit ->
-                    editingSong = songToEdit
-                    showEditor = true
-                    selectedSong = null
+        
+        val blurRadius = baseBlur * blurFraction
+        
+        // 1. MAIN APP CONTENT (Always in composition for interactive transitions)
+        Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
+            Scaffold(
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            ) { innerPadding ->
+                val topBarHeight = 140.dp 
+                val bottomBarHeight = 110.dp
+                
+                Box(Modifier.fillMaxSize()) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        val screenPadding = PaddingValues(
+                            top = topBarHeight,
+                            bottom = bottomBarHeight
+                        )
+                        
+                        when (page) {
+                            0 -> {
+                                val favoriteSongs = remember(allSongs, favoriteIds) {
+                                    allSongs.filter { it.id in favoriteIds }
+                                }
+                                SongListScreen(
+                                    songs = favoriteSongs,
+                                    favoriteIds = favoriteIds,
+                                    onSongClick = { 
+                                        selectedSong = it
+                                        recentsRepository.addRecent(it.id)
+                                        recentIds = recentsRepository.getRecentIds()
+                                    },
+                                    onFavoriteClick = { toggleFavorite(it) },
+                                    isDarkTheme = isDarkTheme,
+                                    onThemeCycle = onThemeCycle,
+                                    listState = favoritesListState,
+                                    headerTitle = "Saved",
+                                    headerSubtitle = "Your ${favoriteSongs.size} saved favorites",
+                                    contentPadding = screenPadding
+                                )
+                            }
+                            1 -> {
+                                val homeFilteredSongs = remember(allSongs, filterChar, filterOccasion) {
+                                    val currentOccasion = filterOccasion
+                                    val currentChar = filterChar
+                                    if (currentOccasion != null) {
+                                        allSongs.filter { it.id in currentOccasion.range }
+                                    } else if (currentChar != null) {
+                                        if (currentChar == "@") {
+                                            allSongs.filter { !it.categoryChar[0].isLetter() }
+                                        } else {
+                                            allSongs.filter { it.categoryChar.equals(currentChar, ignoreCase = true) }
+                                        }
+                                    } else {
+                                        allSongs
+                                    }
+                                }
+                                SongListScreen(
+                                    songs = homeFilteredSongs,
+                                    favoriteIds = favoriteIds,
+                                    onSongClick = { 
+                                        selectedSong = it
+                                        recentsRepository.addRecent(it.id)
+                                        recentIds = recentsRepository.getRecentIds()
+                                    },
+                                    onFavoriteClick = { toggleFavorite(it) },
+                                    isDarkTheme = isDarkTheme,
+                                    onThemeCycle = onThemeCycle,
+                                    listState = homeListState,
+                                    filterChar = filterChar,
+                                    filterOccasion = filterOccasion,
+                                    headerTitle = "Discover",
+                                    headerSubtitle = "${homeFilteredSongs.size} sacred songs",
+                                    contentPadding = screenPadding
+                                )
+                            }
+                            2 -> {
+                                val recentSongs = remember(allSongs, recentIds) {
+                                    val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
+                                    allSongs.filter { it.id in recentMap }
+                                        .sortedBy { recentMap[it.id] }
+                                }
+                                SongListScreen(
+                                    songs = recentSongs,
+                                    favoriteIds = favoriteIds,
+                                    onSongClick = { 
+                                        selectedSong = it
+                                        recentsRepository.addRecent(it.id)
+                                        recentIds = recentsRepository.getRecentIds()
+                                    },
+                                    onFavoriteClick = { toggleFavorite(it) },
+                                    isDarkTheme = isDarkTheme,
+                                    onThemeCycle = onThemeCycle,
+                                    listState = recentsListState,
+                                    headerTitle = "Recents",
+                                    headerSubtitle = "Your ${recentSongs.size} recent hymns",
+                                    contentPadding = screenPadding
+                                )
+                            }
+                        }
+                    }
+
+                    // Floating Top Bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .liquidGlass(cornerRadius = 28, blurRadius = 40f)
+                        )
+                        androidx.compose.material3.DockedSearchBar(
+                            query = query,
+                            onQueryChange = { query = it },
+                            onSearch = { active = false },
+                            active = active,
+                            onActiveChange = { active = it },
+                            placeholder = { Text("Search song...") },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            colors = androidx.compose.material3.SearchBarDefaults.colors(
+                                containerColor = Color.Transparent,
+                            ),
+                            trailingIcon = {
+                                if (active || query.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        if (query.isNotEmpty()) query = "" else active = false
+                                    }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear")
+                                    }
+                                } else {
+                                    Row {
+                                        if (BuildConfig.DEBUG) {
+                                            IconButton(onClick = {
+                                                coroutineScope.launch {
+                                                    val url = java.net.URL("https://api.github.com/repos/Badmaneers/bororwjabbilai/releases/latest")
+                                                    var errorDetail = ""
+                                                    val result = withContext(Dispatchers.IO) {
+                                                        try {
+                                                            val conn = url.openConnection() as java.net.HttpURLConnection
+                                                            conn.setRequestProperty("User-Agent", "BoroRwjabBilai-App")
+                                                            if (conn.responseCode == 200) {
+                                                                val json = conn.inputStream.bufferedReader().use { it.readText() }
+                                                                com.google.gson.Gson().fromJson(json, com.heliactyl.bororwjabbilai.GitHubRelease::class.java)
+                                                            } else {
+                                                                errorDetail = "HTTP ${conn.responseCode}"
+                                                                null
+                                                            }
+                                                        } catch (e: Exception) {
+                                                            errorDetail = e.localizedMessage ?: "Unknown error"
+                                                            null
+                                                        }
+                                                    }
+                                                    if (result != null) updateRelease = result
+                                                }
+                                            }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.BugReport,
+                                                    contentDescription = "Test Update",
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+                                        IconButton(onClick = { showEditor = true }) {
+                                            Icon(Icons.Default.Add, "Add", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        IconButton(onClick = { showImportDialog = true }) {
+                                            Icon(Icons.Default.VerticalAlignBottom, "Import", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        var themeButtonCenter by remember { mutableStateOf(Offset.Zero) }
+                                        IconButton(
+                                            modifier = Modifier.onGloballyPositioned { 
+                                                val rootPos = it.positionInRoot()
+                                                val size = it.size
+                                                themeButtonCenter = Offset(rootPos.x + size.width / 2f, rootPos.y + size.height / 2f)
+                                            },
+                                            onClick = { onThemeCycle(themeButtonCenter) }
+                                        ) {
+                                            val icon = if (isDarkTheme) Icons.Default.NightsStay else Icons.Default.WbSunny
+                                            Icon(icon, "Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        IconButton(onClick = { showInfoDialog = true }) {
+                                            Icon(Icons.Default.Info, "Info", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val filteredSongs = remember(query, allSongs) {
+                                if (query.isBlank()) allSongs
+                                else {
+                                    val q = query.trim()
+                                    allSongs.filter { song ->
+                                        val lyricsText = song.lyrics.flatMap { it.lines }.joinToString(" ")
+                                        song.title.contains(q, ignoreCase = true) ||
+                                        song.id.toString().contains(q) ||
+                                        lyricsText.contains(q, ignoreCase = true)
+                                    }
+                                }
+                            }
+                            androidx.compose.foundation.lazy.LazyColumn(
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(filteredSongs) { song ->
+                                    SongItem(
+                                        song = song,
+                                        isFavorite = favoriteIds.contains(song.id),
+                                        onFavoriteClick = { toggleFavorite(song) },
+                                        onClick = {
+                                            selectedSong = song
+                                            recentsRepository.addRecent(song.id)
+                                            recentIds = recentsRepository.getRecentIds()
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Floating Bottom Bar
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                            .navigationBarsPadding()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .liquidGlass(cornerRadius = 32, blurRadius = 40f)
+                        )
+                        NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
+                            NavigationBarItem(
+                                icon = { Icon(Icons.Default.Favorite, "Saved") },
+                                label = { Text("Saved") },
+                                selected = pagerState.currentPage == 0,
+                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } }
+                            )
+                            NavigationBarItem(
+                                icon = { 
+                                    Icon(Icons.Default.Home, "Home", modifier = Modifier.pointerInput(Unit) {
+                                        detectVerticalDragGestures { _, dragAmount ->
+                                            if (dragAmount < -10) { 
+                                                showFilterSheet = true
+                                                if (!hasSeenSwipeTutorial) {
+                                                    hasSeenSwipeTutorial = true
+                                                    prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                                }
+                                            }
+                                        }
+                                    })
+                                },
+                                label = { Text("Home") },
+                                selected = pagerState.currentPage == 1,
+                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } }
+                            )
+                            NavigationBarItem(
+                                icon = { Icon(Icons.Default.History, "Recents") },
+                                label = { Text("Recents") },
+                                selected = pagerState.currentPage == 2,
+                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } }
+                            )
+                        }
+                    }
                 }
-            )
-        } else if (showEditor) {
+            }
+        }
+        
+        // 2. SONG DETAIL OVERLAY (interactive)
+        AnimatedVisibility(
+            visible = selectedSong != null,
+            enter = slideInHorizontally { it } + fadeIn(),
+            exit = slideOutHorizontally { it } + fadeOut()
+        ) {
+            detailSong.value?.let { song ->
+                SongDetailScreen(
+                    song = song,
+                    onBack = { selectedSong = null },
+                    onEdit = { songToEdit ->
+                        editingSong = songToEdit
+                        showEditor = true
+                        selectedSong = null
+                    }
+                )
+            }
+        }
+
+        // 3. EDITOR OVERLAY
+        AnimatedVisibility(
+            visible = showEditor,
+            enter = fadeIn() + scaleIn(initialScale = 0.9f),
+            exit = fadeOut() + scaleOut(targetScale = 0.9f)
+        ) {
             com.heliactyl.bororwjabbilai.ui.screens.CustomSongEditorScreen(
                 initialSong = editingSong,
                 onSave = { newSong ->
                     val songToSave = if (newSong.id == -1) {
                         newSong.copy(id = customSongRepository.generateNewId())
-                    } else {
-                        newSong
-                    }
+                    } else newSong
                     customSongRepository.saveSong(songToSave)
                     customSongs = customSongRepository.getCustomSongs()
                     showEditor = false
@@ -638,400 +971,41 @@ fun SongApp(
                     editingSong = null
                 }
             )
-        } else {
-            val baseBlur by animateDpAsState(
-                targetValue = if (showFilterSheet || showInfoDialog || updateRelease != null) 10.dp else 0.dp,
-                animationSpec = tween(durationMillis = 300),
-                label = "baseBlur"
+        }
+
+        if (!hasSeenSwipeTutorial && pagerState.currentPage == 1 && selectedSong == null) {
+            val infiniteTransition = rememberInfiniteTransition(label = "tutorial")
+            val yOffset by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = -100f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1500, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "yOffset"
             )
-            
-            val blurFraction by remember(sheetState, showInfoDialog, updateRelease) {
-                derivedStateOf {
-                    if (showInfoDialog || updateRelease != null) return@derivedStateOf 1f
-                    try {
-                        val offset = sheetState.requireOffset()
-                        val fraction = 1f - (offset / screenHeightPx)
-                        fraction.coerceIn(0f, 1f)
-                    } catch (e: Exception) {
-                        1f
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 0f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1500, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "alpha"
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 140.dp)
+                    .offset(y = yOffset.dp)
+                    .alpha(alpha)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer, shadowElevation = 4.dp) {
+                        Text("Swipe Up to Filter", modifier = Modifier.padding(8.dp), style = MaterialTheme.typography.labelMedium)
                     }
-                }
-            }
-            
-            val blurRadius = baseBlur * blurFraction
-            
-            Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
-                Scaffold(
-                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                ) { innerPadding ->
-                    val topBarHeight = 140.dp // Increased to fix Discover header position
-                    val bottomBarHeight = 110.dp
-                    
-                    Box(Modifier.fillMaxSize()) {
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize()
-                        ) { page ->
-                            val screenPadding = PaddingValues(
-                                top = topBarHeight,
-                                bottom = bottomBarHeight
-                            )
-                            
-                            when (page) {
-                                0 -> {
-                                    val favoriteSongs = remember(allSongs, favoriteIds) {
-                                        allSongs.filter { it.id in favoriteIds }
-                                    }
-                                    SongListScreen(
-                                        songs = favoriteSongs,
-                                        favoriteIds = favoriteIds,
-                                        onSongClick = { 
-                                            selectedSong = it
-                                            recentsRepository.addRecent(it.id)
-                                            recentIds = recentsRepository.getRecentIds()
-                                        },
-                                        onFavoriteClick = { toggleFavorite(it) },
-                                        isDarkTheme = isDarkTheme,
-                                        onThemeCycle = onThemeCycle,
-                                        listState = favoritesListState,
-                                        headerTitle = "Saved",
-                                        headerSubtitle = "Your ${favoriteSongs.size} saved favorites",
-                                        contentPadding = screenPadding
-                                    )
-                                }
-                                1 -> {
-                                    val homeFilteredSongs = remember(allSongs, filterChar, filterOccasion) {
-                                        val currentOccasion = filterOccasion
-                                        val currentChar = filterChar
-                                        if (currentOccasion != null) {
-                                            allSongs.filter { it.id in currentOccasion.range }
-                                        } else if (currentChar != null) {
-                                            if (currentChar == "@") {
-                                                allSongs.filter { !it.categoryChar[0].isLetter() }
-                                            } else {
-                                                allSongs.filter { it.categoryChar.equals(currentChar, ignoreCase = true) }
-                                            }
-                                        } else {
-                                            allSongs
-                                        }
-                                    }
-                                    SongListScreen(
-                                        songs = homeFilteredSongs,
-                                        favoriteIds = favoriteIds,
-                                        onSongClick = { 
-                                            selectedSong = it
-                                            recentsRepository.addRecent(it.id)
-                                            recentIds = recentsRepository.getRecentIds()
-                                        },
-                                        onFavoriteClick = { toggleFavorite(it) },
-                                        isDarkTheme = isDarkTheme,
-                                        onThemeCycle = onThemeCycle,
-                                        listState = homeListState,
-                                        filterChar = filterChar,
-                                        filterOccasion = filterOccasion,
-                                        headerTitle = "Discover",
-                                        headerSubtitle = "${homeFilteredSongs.size} sacred songs",
-                                        contentPadding = screenPadding
-                                    )
-                                }
-                                2 -> {
-                                    val recentSongs = remember(allSongs, recentIds) {
-                                        val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
-                                        allSongs.filter { it.id in recentMap }
-                                            .sortedBy { recentMap[it.id] }
-                                    }
-                                    SongListScreen(
-                                        songs = recentSongs,
-                                        favoriteIds = favoriteIds,
-                                        onSongClick = { 
-                                            selectedSong = it
-                                            recentsRepository.addRecent(it.id)
-                                            recentIds = recentsRepository.getRecentIds()
-                                        },
-                                        onFavoriteClick = { toggleFavorite(it) },
-                                        isDarkTheme = isDarkTheme,
-                                        onThemeCycle = onThemeCycle,
-                                        listState = recentsListState,
-                                        headerTitle = "Recents",
-                                        headerSubtitle = "Your ${recentSongs.size} recent hymns",
-                                        contentPadding = screenPadding
-                                    )
-                                }
-                            }
-                        }
-
-                        // Floating Top Bar with frosted glass background and SHARP content
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .statusBarsPadding()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            // Glass background layer
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .liquidGlass(cornerRadius = 28, blurRadius = 40f)
-                            )
-                            
-                            // SHARP Search content layer
-                            androidx.compose.material3.DockedSearchBar(
-                                query = query,
-                                onQueryChange = { query = it },
-                                onSearch = { active = false },
-                                active = active,
-                                onActiveChange = { active = it },
-                                placeholder = { Text("Search song...") },
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                                colors = androidx.compose.material3.SearchBarDefaults.colors(
-                                    containerColor = Color.Transparent,
-                                ),
-                                trailingIcon = {
-                                    if (active || query.isNotEmpty()) {
-                                        IconButton(onClick = {
-                                            if (query.isNotEmpty()) query = "" else active = false
-                                        }) {
-                                            Icon(Icons.Default.Close, contentDescription = "Clear")
-                                        }
-                                    } else {
-                                        Row {
-                                            // Debug Test Button
-                                            if (BuildConfig.DEBUG) {
-                                                IconButton(onClick = {
-                                                    coroutineScope.launch {
-                                                        // Force check ignore 24h
-                                                        val url = java.net.URL("https://api.github.com/repos/Badmaneers/bororwjabbilai/releases/latest")
-                                                        var errorDetail = ""
-                                                        val result = withContext(Dispatchers.IO) {
-                                                            try {
-                                                                val conn = url.openConnection() as java.net.HttpURLConnection
-                                                                conn.setRequestProperty("User-Agent", "BoroRwjabBilai-App")
-                                                                if (conn.responseCode == 200) {
-                                                                    val json = conn.inputStream.bufferedReader().use { it.readText() }
-                                                                    com.google.gson.Gson().fromJson(json, com.heliactyl.bororwjabbilai.GitHubRelease::class.java)
-                                                                } else {
-                                                                    errorDetail = "HTTP ${conn.responseCode}"
-                                                                    null
-                                                                }
-                                                            } catch (e: Exception) {
-                                                                errorDetail = e.localizedMessage ?: "Unknown error"
-                                                                null
-                                                            }
-                                                        }
-                                                        if (result != null) {
-                                                            updateRelease = result
-                                                        } else {
-                                                            android.widget.Toast.makeText(context, "Update check failed: $errorDetail", android.widget.Toast.LENGTH_LONG).show()
-                                                        }
-                                                    }
-                                                }) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.BugReport,
-                                                        contentDescription = "Test Update",
-                                                        tint = MaterialTheme.colorScheme.error
-                                                    )
-                                                }
-                                            }
-
-                                            IconButton(onClick = { showEditor = true }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Add,
-                                                    contentDescription = "Add Custom Song",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                            IconButton(onClick = { showImportDialog = true }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.VerticalAlignBottom,
-                                                    contentDescription = "Import Song",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                            var themeButtonCenter by remember { mutableStateOf(Offset.Zero) }
-                                            IconButton(
-                                                modifier = Modifier.onGloballyPositioned { 
-                                                    val rootPos = it.positionInRoot()
-                                                    val size = it.size
-                                                    themeButtonCenter = Offset(
-                                                        rootPos.x + size.width / 2f,
-                                                        rootPos.y + size.height / 2f
-                                                    )
-                                                },
-                                                onClick = { onThemeCycle(themeButtonCenter) }
-                                            ) {
-                                                val icon = if (isDarkTheme) Icons.Default.NightsStay else Icons.Default.WbSunny
-                                                Icon(
-                                                    imageVector = icon,
-                                                    contentDescription = "Toggle Theme",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                            IconButton(onClick = { showInfoDialog = true }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Info,
-                                                    contentDescription = "Developer Info",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                val filteredSongs = remember(query, allSongs) {
-                                    if (query.isBlank()) allSongs
-                                    else {
-                                        val q = query.trim()
-                                        allSongs.filter { song ->
-                                            val lyricsText = song.lyrics.flatMap { it.lines }.joinToString(" ")
-                                            song.title.contains(q, ignoreCase = true) ||
-                                            song.id.toString().contains(q) ||
-                                            lyricsText.contains(q, ignoreCase = true)
-                                        }
-                                    }
-                                }
-                                androidx.compose.foundation.lazy.LazyColumn(
-                                    contentPadding = PaddingValues(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    items(filteredSongs) { song ->
-                                        SongItem(
-                                            song = song,
-                                            isFavorite = favoriteIds.contains(song.id),
-                                            onFavoriteClick = { toggleFavorite(song) },
-                                            onClick = {
-                                                selectedSong = song
-                                                recentsRepository.addRecent(song.id)
-                                                recentIds = recentsRepository.getRecentIds()
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Floating Bottom Bar with frosted glass background and SHARP content
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(16.dp)
-                                .navigationBarsPadding()
-                        ) {
-                            // Glass background layer
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .liquidGlass(cornerRadius = 32, blurRadius = 40f)
-                            )
-                            
-                            // SHARP Navigation content layer
-                            NavigationBar(
-                                containerColor = Color.Transparent,
-                                tonalElevation = 0.dp
-                            ) {
-                                NavigationBarItem(
-                                    icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
-                                    label = { Text("Saved") },
-                                    selected = pagerState.currentPage == 0,
-                                    onClick = { 
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(0)
-                                        }
-                                    }
-                                )
-                            
-                                NavigationBarItem(
-                                    icon = { 
-                                        Icon(
-                                            Icons.Default.Home, 
-                                            contentDescription = "Home",
-                                            modifier = Modifier.pointerInput(Unit) {
-                                                detectVerticalDragGestures { _, dragAmount ->
-                                                    if (dragAmount < -10) { // Drag up
-                                                        showFilterSheet = true
-                                                        if (!hasSeenSwipeTutorial) {
-                                                            hasSeenSwipeTutorial = true
-                                                            prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        )
-                                    },
-                                    label = { Text("Home") },
-                                    selected = pagerState.currentPage == 1,
-                                    onClick = { 
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(1)
-                                        }
-                                    }
-                                )
-
-                                NavigationBarItem(
-                                    icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
-                                    label = { Text("Recents") },
-                                    selected = pagerState.currentPage == 2,
-                                    onClick = { 
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(2)
-                                        }
-                                    }
-                                )
-                            }
-                        }
-
-                        if (!hasSeenSwipeTutorial && pagerState.currentPage == 1) {
-                            val infiniteTransition = rememberInfiniteTransition(label = "tutorial")
-                            val yOffset by infiniteTransition.animateFloat(
-                                initialValue = 0f,
-                                targetValue = -100f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1500, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Restart
-                                ),
-                                label = "yOffset"
-                            )
-                            val alpha by infiniteTransition.animateFloat(
-                                initialValue = 1f,
-                                targetValue = 0f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1500, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Restart
-                                ),
-                                label = "alpha"
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 140.dp) // Adjusted for floating bar
-                                    .offset(y = yOffset.dp)
-                                    .alpha(alpha)
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Surface(
-                                        shape = MaterialTheme.shapes.medium,
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        shadowElevation = 4.dp
-                                    ) {
-                                        Text(
-                                            "Swipe Up to Filter",
-                                            modifier = Modifier.padding(8.dp),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.TouchApp,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(48.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Icon(Icons.Default.TouchApp, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
                 }
             }
         }
