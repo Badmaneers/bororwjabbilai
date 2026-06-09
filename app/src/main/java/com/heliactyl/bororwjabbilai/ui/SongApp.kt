@@ -1,85 +1,68 @@
 package com.heliactyl.bororwjabbilai.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.window.Dialog
+import com.heliactyl.bororwjabbilai.BuildConfig
+import androidx.compose.ui.window.DialogProperties
+import coil.ImageLoader
+import coil.decode.SvgDecoder
 import com.heliactyl.bororwjabbilai.FavoritesRepository
 import com.heliactyl.bororwjabbilai.RecentsRepository
 import com.heliactyl.bororwjabbilai.Song
 import com.heliactyl.bororwjabbilai.SongRepository
+import com.heliactyl.bororwjabbilai.ui.Occasion
+import com.heliactyl.bororwjabbilai.ui.components.SocialRow
+import com.heliactyl.bororwjabbilai.ui.components.SongItem
+import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
+import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
+import com.heliactyl.bororwjabbilai.ui.occasionFilters
 import com.heliactyl.bororwjabbilai.ui.screens.SongDetailScreen
 import com.heliactyl.bororwjabbilai.ui.screens.SongListScreen
-import com.heliactyl.bororwjabbilai.ui.Occasion
-import com.heliactyl.bororwjabbilai.ui.occasionFilters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -93,10 +76,23 @@ fun SongApp(
     isDarkTheme: Boolean,
     onThemeCycle: (Offset) -> Unit
 ) {
+    val context = LocalContext.current
+    val customSongRepository = remember { com.heliactyl.bororwjabbilai.CustomSongRepository(context) }
+    
     var songs by remember { mutableStateOf(emptyList<Song>()) }
+    var customSongs by remember { mutableStateOf(customSongRepository.getCustomSongs()) }
+    
+    val allSongs by remember(songs, customSongs) {
+        derivedStateOf { songs + customSongs }
+    }
+    
     var recentIds by remember { mutableStateOf(recentsRepository.getRecentIds()) }
     var favoriteIds by remember { mutableStateOf(favoritesRepository.getFavoriteIds()) }
     var selectedSong by remember { mutableStateOf<Song?>(null) }
+    var editingSong by remember { mutableStateOf<Song?>(null) }
+    var showEditor by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var importCode by remember { mutableStateOf("") }
     
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
@@ -108,11 +104,12 @@ fun SongApp(
     var filterChar by remember { mutableStateOf<String?>(null) }
     var filterOccasion by remember { mutableStateOf<Occasion?>(null) }
     var showFilterSheet by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
+    var updateRelease by remember { mutableStateOf<com.heliactyl.bororwjabbilai.GitHubRelease?>(null) }
 
     var query by rememberSaveable { mutableStateOf("") }
     var active by rememberSaveable { mutableStateOf(false) }
 
-    val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
     var hasSeenSwipeTutorial by remember { mutableStateOf(prefs.getBoolean("has_seen_swipe_tutorial", false)) }
 
@@ -125,6 +122,8 @@ fun SongApp(
         withContext(Dispatchers.IO) {
             songs = songRepository.getSongs()
         }
+        val updateManager = com.heliactyl.bororwjabbilai.UpdateManager(context)
+        updateRelease = updateManager.checkForUpdate()
     }
 
     LaunchedEffect(pagerState.currentPage) {
@@ -143,27 +142,113 @@ fun SongApp(
     if (showFilterSheet) {
         ModalBottomSheet(
             sheetState = sheetState,
-            onDismissRequest = { showFilterSheet = false }
+            onDismissRequest = { showFilterSheet = false },
+            containerColor = Color.Transparent,
+            dragHandle = {
+                val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .size(32.dp, 4.dp)
+                        .background(
+                            if (isDark) Color.White.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.1f),
+                            RoundedCornerShape(2.dp)
+                        )
+                )
+            }
         ) {
             val filterPagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
             
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(16.dp)
+                    .liquidGlass(cornerRadius = 32)
+                    .padding(bottom = 32.dp)
             ) {
-                androidx.compose.material3.TabRow(
+                TabRow(
                     selectedTabIndex = filterPagerState.currentPage,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(48.dp)
+                        .liquidGlass(
+                            cornerRadius = 24,
+                            color = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.02f)
+                        ),
+                    containerColor = Color.Transparent,
+                    divider = {},
+                    indicator = { tabPositions ->
+                        if (tabPositions.isNotEmpty()) {
+                            // Calculate a continuous page value from 0 to N-1
+                            val continuousPage = filterPagerState.currentPage + filterPagerState.currentPageOffsetFraction
+                            val index = continuousPage.toInt().coerceIn(0, tabPositions.size - 2)
+                            val fraction = continuousPage - index
+                            
+                            val currentTab = tabPositions[index]
+                            val nextTab = tabPositions[index + 1]
+                            
+                            // Smoothly interpolate position and width
+                            val lerpLeft = currentTab.left + (nextTab.left - currentTab.left) * fraction
+                            val lerpWidth = currentTab.width + (nextTab.width - currentTab.width) * fraction
+                            
+                            // Adjust these values to make the pill smaller
+                            val horizontalPadding = 32.dp
+                            val verticalPadding = 10.dp
+                            val bubbleWidth = lerpWidth - (horizontalPadding * 2)
+                            
+                            Box(
+                                Modifier
+                                    .fillMaxHeight()
+                                    .width(bubbleWidth)
+                                    .offset {
+                                        IntOffset(x = (lerpLeft + horizontalPadding).roundToPx(), y = 0)
+                                    }
+                                    .padding(vertical = verticalPadding)
+                                    .zIndex(0f)
+                                    .liquidGlass(
+                                        cornerRadius = 20,
+                                        color = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) 
+                                            Color.White.copy(alpha = 0.12f) 
+                                        else 
+                                            Color.White.copy(alpha = 0.85f),
+                                        blurRadius = 20f
+                                    )
+                            ) {
+                                Box(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 12.dp, vertical = 2.dp)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    Color.White.copy(alpha = 0.4f),
+                                                    Color.White.copy(alpha = 0.05f),
+                                                    Color.Transparent
+                                                )
+                                            ),
+                                            RoundedCornerShape(20.dp)
+                                        )
+                                )
+                            }
+                        }
+                    }
                 ) {
                     androidx.compose.material3.Tab(
                         selected = filterPagerState.currentPage == 0,
                         onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(0) } },
-                        text = { Text("Letter") }
+                        modifier = Modifier.zIndex(1f),
+                        text = { Text("Letter", fontWeight = if (filterPagerState.currentPage == 0) FontWeight.Bold else FontWeight.Normal) },
+                        selectedContentColor = MaterialTheme.colorScheme.primary,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     androidx.compose.material3.Tab(
                         selected = filterPagerState.currentPage == 1,
                         onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(1) } },
-                        text = { Text("Category") }
+                        modifier = Modifier.zIndex(1f),
+                        text = { Text("Category", fontWeight = if (filterPagerState.currentPage == 1) FontWeight.Bold else FontWeight.Normal) },
+                        selectedContentColor = MaterialTheme.colorScheme.primary,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
 
@@ -184,7 +269,11 @@ fun SongApp(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Select Letter Filter", style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        text = "Select Letter Filter",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                     if (filterChar != null) {
                                         TextButton(onClick = { 
                                             filterChar = null
@@ -204,15 +293,25 @@ fun SongApp(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     chars.forEach { char ->
-                                        FilterChip(
-                                            selected = filterChar == char,
-                                            onClick = { 
-                                                filterChar = if (filterChar == char) null else char
-                                                filterOccasion = null
-                                                showFilterSheet = false
-                                            },
-                                            label = { Text(char) }
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .liquidGlass(
+                                                    color = if (filterChar == char) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.05f),
+                                                    cornerRadius = 12
+                                                )
+                                                .bouncyClick {
+                                                    filterChar = if (filterChar == char) null else char
+                                                    filterOccasion = null
+                                                    showFilterSheet = false
+                                                }
+                                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        ) {
+                                            Text(
+                                                text = char,
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = if (filterChar == char) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -229,7 +328,11 @@ fun SongApp(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Select Category", style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        text = "Select Category",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                     if (filterOccasion != null) {
                                         TextButton(onClick = { 
                                             filterOccasion = null
@@ -247,21 +350,24 @@ fun SongApp(
                                 ) {
                                     items(occasionFilters.size) { index ->
                                         val occasion = occasionFilters[index]
-                                        androidx.compose.material3.Surface(
-                                            onClick = { 
-                                                filterOccasion = if (filterOccasion == occasion) null else occasion
-                                                filterChar = null
-                                                showFilterSheet = false
-                                            },
-                                            shape = MaterialTheme.shapes.small,
-                                            color = if (filterOccasion == occasion) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                                            modifier = Modifier.fillMaxWidth()
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .liquidGlass(
+                                                    color = if (filterOccasion == occasion) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.05f),
+                                                    cornerRadius = 16
+                                                )
+                                                .bouncyClick {
+                                                    filterOccasion = if (filterOccasion == occasion) null else occasion
+                                                    filterChar = null
+                                                    showFilterSheet = false
+                                                }
+                                                .padding(16.dp)
                                         ) {
                                             Text(
                                                 text = occasion.name,
-                                                modifier = Modifier.padding(16.dp),
                                                 style = MaterialTheme.typography.bodyLarge,
-                                                color = if (filterOccasion == occasion) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = if (filterOccasion == occasion) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                             )
                                         }
                                     }
@@ -271,6 +377,221 @@ fun SongApp(
                     }
                 }
                 Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
+
+    if (showInfoDialog) {
+        val imageLoader = remember {
+            ImageLoader.Builder(context)
+                .components {
+                    add(SvgDecoder.Factory())
+                }
+                .build()
+        }
+        Dialog(
+            onDismissRequest = { showInfoDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .liquidGlass(cornerRadius = 32)
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        "Developer Info",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        SocialRow(
+                            text = "Instagram",
+                            handle = "@heliactyl",
+                            iconModel = "file:///android_asset/instagram.svg",
+                            imageLoader = imageLoader,
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/heliactyl"))
+                                context.startActivity(intent)
+                            }
+                        )
+                        SocialRow(
+                            text = "Telegram",
+                            handle = "@dumbdragon",
+                            iconModel = "file:///android_asset/telegram.svg",
+                            imageLoader = imageLoader,
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/dumbdragon"))
+                                context.startActivity(intent)
+                            }
+                        )
+                        SocialRow(
+                            text = "GitHub",
+                            handle = "Badmaneers",
+                            iconModel = "file:///android_asset/github.svg",
+                            imageLoader = imageLoader,
+                            tint = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color.White else Color.Black,
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Badmaneers"))
+                                context.startActivity(intent)
+                            }
+                        )
+                        SocialRow(
+                            text = "Email",
+                            handle = "dukebraham24@gmail.com",
+                            iconVector = Icons.Default.Email,
+                            imageLoader = imageLoader,
+                            tint = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color.White else Color.Black,
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                    data = Uri.parse("mailto:dukebraham24@gmail.com")
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                        TextButton(onClick = { showInfoDialog = false }) {
+                            Text("Close", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showImportDialog) {
+        Dialog(onDismissRequest = { showImportDialog = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .liquidGlass(cornerRadius = 24)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Import Custom Song",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Paste the song code shared by another user to import it with its original formatting.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
+                
+                OutlinedTextField(
+                    value = importCode,
+                    onValueChange = { importCode = it },
+                    label = { Text("Song Code") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 4
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { showImportDialog = false; importCode = "" }) {
+                        Text("Cancel")
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val imported = customSongRepository.importSongFromCode(importCode)
+                            if (imported != null) {
+                                customSongRepository.saveSong(imported)
+                                customSongs = customSongRepository.getCustomSongs()
+                                showImportDialog = false
+                                importCode = ""
+                            }
+                        },
+                        enabled = importCode.isNotBlank()
+                    ) {
+                        Text("Import")
+                    }
+                }
+            }
+        }
+    }
+
+    updateRelease?.let { release ->
+        Dialog(
+            onDismissRequest = { updateRelease = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .liquidGlass(cornerRadius = 24)
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "New Update Available!",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Version ${release.tagName} is now available. Here's what's new:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .background(Color.Black.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        val scroll = rememberScrollState()
+                        Text(
+                            text = release.body,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.verticalScroll(scroll)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { updateRelease = null }) {
+                            Text("Later")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(release.htmlUrl))
+                                context.startActivity(intent)
+                                updateRelease = null
+                            }
+                        ) {
+                            Text("Update Now")
+                        }
+                    }
+                }
             }
         }
     }
@@ -291,28 +612,47 @@ fun SongApp(
         if (targetState != null) {
             SongDetailScreen(
                 song = targetState,
-                onBack = { selectedSong = null }
+                onBack = { selectedSong = null },
+                onEdit = { songToEdit ->
+                    editingSong = songToEdit
+                    showEditor = true
+                    selectedSong = null
+                }
+            )
+        } else if (showEditor) {
+            com.heliactyl.bororwjabbilai.ui.screens.CustomSongEditorScreen(
+                initialSong = editingSong,
+                onSave = { newSong ->
+                    val songToSave = if (newSong.id == -1) {
+                        newSong.copy(id = customSongRepository.generateNewId())
+                    } else {
+                        newSong
+                    }
+                    customSongRepository.saveSong(songToSave)
+                    customSongs = customSongRepository.getCustomSongs()
+                    showEditor = false
+                    editingSong = null
+                },
+                onCancel = {
+                    showEditor = false
+                    editingSong = null
+                }
             )
         } else {
             val baseBlur by animateDpAsState(
-                targetValue = if (showFilterSheet) 10.dp else 0.dp,
+                targetValue = if (showFilterSheet || showInfoDialog || updateRelease != null) 10.dp else 0.dp,
                 animationSpec = tween(durationMillis = 300),
                 label = "baseBlur"
             )
             
-            val blurFraction by remember(sheetState) {
+            val blurFraction by remember(sheetState, showInfoDialog, updateRelease) {
                 derivedStateOf {
+                    if (showInfoDialog || updateRelease != null) return@derivedStateOf 1f
                     try {
-                        // Calculate fraction based on sheet offset
-                        // 1.0 = fully expanded (top of screen)
-                        // 0.0 = fully hidden (bottom of screen)
-                        // If sheet is partial height, max fraction will be < 1.0, which is fine
                         val offset = sheetState.requireOffset()
                         val fraction = 1f - (offset / screenHeightPx)
                         fraction.coerceIn(0f, 1f)
                     } catch (e: Exception) {
-                        // Fallback to 1f (full intensity allowed) if offset is not yet available
-                        // This ensures the animateDpAsState controls the entry animation cleanly
                         1f
                     }
                 }
@@ -321,183 +661,379 @@ fun SongApp(
             val blurRadius = baseBlur * blurFraction
             
             Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
-            Scaffold(
-                contentWindowInsets = WindowInsets.navigationBars,
-                bottomBar = {
-                    NavigationBar {
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
-                            label = { Text("Saved") },
-                            selected = pagerState.currentPage == 0,
-                            onClick = { 
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(0)
+                Scaffold(
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                ) { innerPadding ->
+                    val topBarHeight = 140.dp // Increased to fix Discover header position
+                    val bottomBarHeight = 110.dp
+                    
+                    Box(Modifier.fillMaxSize()) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize()
+                        ) { page ->
+                            val screenPadding = PaddingValues(
+                                top = topBarHeight,
+                                bottom = bottomBarHeight
+                            )
+                            
+                            when (page) {
+                                0 -> {
+                                    val favoriteSongs = remember(allSongs, favoriteIds) {
+                                        allSongs.filter { it.id in favoriteIds }
+                                    }
+                                    SongListScreen(
+                                        songs = favoriteSongs,
+                                        favoriteIds = favoriteIds,
+                                        onSongClick = { 
+                                            selectedSong = it
+                                            recentsRepository.addRecent(it.id)
+                                            recentIds = recentsRepository.getRecentIds()
+                                        },
+                                        onFavoriteClick = { toggleFavorite(it) },
+                                        isDarkTheme = isDarkTheme,
+                                        onThemeCycle = onThemeCycle,
+                                        listState = favoritesListState,
+                                        headerTitle = "Saved",
+                                        headerSubtitle = "Your ${favoriteSongs.size} saved favorites",
+                                        contentPadding = screenPadding
+                                    )
+                                }
+                                1 -> {
+                                    val homeFilteredSongs = remember(allSongs, filterChar, filterOccasion) {
+                                        val currentOccasion = filterOccasion
+                                        val currentChar = filterChar
+                                        if (currentOccasion != null) {
+                                            allSongs.filter { it.id in currentOccasion.range }
+                                        } else if (currentChar != null) {
+                                            if (currentChar == "@") {
+                                                allSongs.filter { !it.categoryChar[0].isLetter() }
+                                            } else {
+                                                allSongs.filter { it.categoryChar.equals(currentChar, ignoreCase = true) }
+                                            }
+                                        } else {
+                                            allSongs
+                                        }
+                                    }
+                                    SongListScreen(
+                                        songs = homeFilteredSongs,
+                                        favoriteIds = favoriteIds,
+                                        onSongClick = { 
+                                            selectedSong = it
+                                            recentsRepository.addRecent(it.id)
+                                            recentIds = recentsRepository.getRecentIds()
+                                        },
+                                        onFavoriteClick = { toggleFavorite(it) },
+                                        isDarkTheme = isDarkTheme,
+                                        onThemeCycle = onThemeCycle,
+                                        listState = homeListState,
+                                        filterChar = filterChar,
+                                        filterOccasion = filterOccasion,
+                                        headerTitle = "Discover",
+                                        headerSubtitle = "${homeFilteredSongs.size} sacred songs",
+                                        contentPadding = screenPadding
+                                    )
+                                }
+                                2 -> {
+                                    val recentSongs = remember(allSongs, recentIds) {
+                                        val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
+                                        allSongs.filter { it.id in recentMap }
+                                            .sortedBy { recentMap[it.id] }
+                                    }
+                                    SongListScreen(
+                                        songs = recentSongs,
+                                        favoriteIds = favoriteIds,
+                                        onSongClick = { 
+                                            selectedSong = it
+                                            recentsRepository.addRecent(it.id)
+                                            recentIds = recentsRepository.getRecentIds()
+                                        },
+                                        onFavoriteClick = { toggleFavorite(it) },
+                                        isDarkTheme = isDarkTheme,
+                                        onThemeCycle = onThemeCycle,
+                                        listState = recentsListState,
+                                        headerTitle = "Recents",
+                                        headerSubtitle = "Your ${recentSongs.size} recent hymns",
+                                        contentPadding = screenPadding
+                                    )
                                 }
                             }
-                        )
-                    
-                        NavigationBarItem(
-                            icon = { 
-                                Icon(
-                                    Icons.Default.Home, 
-                                    contentDescription = "Home",
-                                    modifier = Modifier.pointerInput(Unit) {
-                                        detectVerticalDragGestures { change, dragAmount ->
-                                            if (dragAmount < -10) { // Drag up
-                                                showFilterSheet = true
-                                                if (!hasSeenSwipeTutorial) {
-                                                    hasSeenSwipeTutorial = true
-                                                    prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                        }
+
+                        // Floating Top Bar with frosted glass background and SHARP content
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .statusBarsPadding()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            // Glass background layer
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .liquidGlass(cornerRadius = 28, blurRadius = 40f)
+                            )
+                            
+                            // SHARP Search content layer
+                            androidx.compose.material3.DockedSearchBar(
+                                query = query,
+                                onQueryChange = { query = it },
+                                onSearch = { active = false },
+                                active = active,
+                                onActiveChange = { active = it },
+                                placeholder = { Text("Search song...") },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                colors = androidx.compose.material3.SearchBarDefaults.colors(
+                                    containerColor = Color.Transparent,
+                                ),
+                                trailingIcon = {
+                                    if (active || query.isNotEmpty()) {
+                                        IconButton(onClick = {
+                                            if (query.isNotEmpty()) query = "" else active = false
+                                        }) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                                        }
+                                    } else {
+                                        Row {
+                                            // Debug Test Button
+                                            if (BuildConfig.DEBUG) {
+                                                IconButton(onClick = {
+                                                    coroutineScope.launch {
+                                                        // Force check ignore 24h
+                                                        val url = java.net.URL("https://api.github.com/repos/Badmaneers/bororwjabbilai/releases/latest")
+                                                        var errorDetail = ""
+                                                        val result = withContext(Dispatchers.IO) {
+                                                            try {
+                                                                val conn = url.openConnection() as java.net.HttpURLConnection
+                                                                conn.setRequestProperty("User-Agent", "BoroRwjabBilai-App")
+                                                                if (conn.responseCode == 200) {
+                                                                    val json = conn.inputStream.bufferedReader().use { it.readText() }
+                                                                    com.google.gson.Gson().fromJson(json, com.heliactyl.bororwjabbilai.GitHubRelease::class.java)
+                                                                } else {
+                                                                    errorDetail = "HTTP ${conn.responseCode}"
+                                                                    null
+                                                                }
+                                                            } catch (e: Exception) {
+                                                                errorDetail = e.localizedMessage ?: "Unknown error"
+                                                                null
+                                                            }
+                                                        }
+                                                        if (result != null) {
+                                                            updateRelease = result
+                                                        } else {
+                                                            android.widget.Toast.makeText(context, "Update check failed: $errorDetail", android.widget.Toast.LENGTH_LONG).show()
+                                                        }
+                                                    }
+                                                }) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.BugReport,
+                                                        contentDescription = "Test Update",
+                                                        tint = MaterialTheme.colorScheme.error
+                                                    )
                                                 }
+                                            }
+
+                                            IconButton(onClick = { showEditor = true }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Add,
+                                                    contentDescription = "Add Custom Song",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            IconButton(onClick = { showImportDialog = true }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.VerticalAlignBottom,
+                                                    contentDescription = "Import Song",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            var themeButtonCenter by remember { mutableStateOf(Offset.Zero) }
+                                            IconButton(
+                                                modifier = Modifier.onGloballyPositioned { 
+                                                    val rootPos = it.positionInRoot()
+                                                    val size = it.size
+                                                    themeButtonCenter = Offset(
+                                                        rootPos.x + size.width / 2f,
+                                                        rootPos.y + size.height / 2f
+                                                    )
+                                                },
+                                                onClick = { onThemeCycle(themeButtonCenter) }
+                                            ) {
+                                                val icon = if (isDarkTheme) Icons.Default.NightsStay else Icons.Default.WbSunny
+                                                Icon(
+                                                    imageVector = icon,
+                                                    contentDescription = "Toggle Theme",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            IconButton(onClick = { showInfoDialog = true }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Info,
+                                                    contentDescription = "Developer Info",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
                                             }
                                         }
                                     }
-                                )
-                            },
-                            label = { Text("Home") },
-                            selected = pagerState.currentPage == 1,
-                            onClick = { 
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(1)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val filteredSongs = remember(query, allSongs) {
+                                    if (query.isBlank()) allSongs
+                                    else {
+                                        val q = query.trim()
+                                        allSongs.filter { song ->
+                                            val lyricsText = song.lyrics.flatMap { it.lines }.joinToString(" ")
+                                            song.title.contains(q, ignoreCase = true) ||
+                                            song.id.toString().contains(q) ||
+                                            lyricsText.contains(q, ignoreCase = true)
+                                        }
+                                    }
+                                }
+                                androidx.compose.foundation.lazy.LazyColumn(
+                                    contentPadding = PaddingValues(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(filteredSongs) { song ->
+                                        SongItem(
+                                            song = song,
+                                            isFavorite = favoriteIds.contains(song.id),
+                                            onFavoriteClick = { toggleFavorite(song) },
+                                            onClick = {
+                                                selectedSong = song
+                                                recentsRepository.addRecent(song.id)
+                                                recentIds = recentsRepository.getRecentIds()
+                                            }
+                                        )
+                                    }
                                 }
                             }
-                        )
-
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
-                            label = { Text("Recents") },
-                            selected = pagerState.currentPage == 2,
-                            onClick = { 
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(2)
-                                }
-                            }
-                        )
-                    }
-                }
-            ) { innerPadding ->
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                ) { page ->
-                    when (page) {
-                        0 -> {
-                            val favoriteSongs = remember(songs, favoriteIds) {
-                                songs.filter { it.id in favoriteIds }
-                            }
-                             SongListScreen(
-                                songs = favoriteSongs,
-                                favoriteIds = favoriteIds,
-                                onSongClick = { 
-                                    selectedSong = it
-                                    recentsRepository.addRecent(it.id)
-                                    recentIds = recentsRepository.getRecentIds()
-                                },
-                                onFavoriteClick = { toggleFavorite(it) },
-                                isDarkTheme = isDarkTheme,
-                                onThemeCycle = onThemeCycle,
-                                listState = favoritesListState
-                            )
                         }
-                        1 -> {
-                            SongListScreen(
-                                songs = songs,
-                                favoriteIds = favoriteIds,
-                                onSongClick = { 
-                                    selectedSong = it
-                                    recentsRepository.addRecent(it.id)
-                                    recentIds = recentsRepository.getRecentIds()
-                                },
-                                onFavoriteClick = { toggleFavorite(it) },
-                                isDarkTheme = isDarkTheme,
-                                onThemeCycle = onThemeCycle,
-                                listState = homeListState,
-                                filterChar = filterChar,
-                                filterOccasion = filterOccasion,
-                                query = query,
-                                onQueryChange = { query = it },
-                                active = active,
-                                onActiveChange = { active = it }
-                            )
-                        }
-                        2 -> {
-                            val recentSongs = remember(songs, recentIds) {
-                                val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
-                                songs.filter { it.id in recentMap }
-                                    .sortedBy { recentMap[it.id] }
-                            }
-                            SongListScreen(
-                                songs = recentSongs,
-                                favoriteIds = favoriteIds,
-                                onSongClick = { 
-                                    selectedSong = it
-                                    recentsRepository.addRecent(it.id)
-                                    recentIds = recentsRepository.getRecentIds()
-                                },
-                                onFavoriteClick = { toggleFavorite(it) },
-                                isDarkTheme = isDarkTheme,
-                                onThemeCycle = onThemeCycle,
-                                listState = recentsListState
-                            )
-                        }
-                    }
-                }
-            }
 
-            if (!hasSeenSwipeTutorial && pagerState.currentPage == 1) {
-                val infiniteTransition = rememberInfiniteTransition(label = "tutorial")
-                val yOffset by infiniteTransition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = -100f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1500, easing = LinearEasing),
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "yOffset"
-                )
-                val alpha by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 0f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1500, easing = LinearEasing),
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "alpha"
-                )
-
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 80.dp) // Above Navigation Bar
-                        .offset(y = yOffset.dp)
-                        .alpha(alpha)
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Surface(
-                            shape = MaterialTheme.shapes.medium,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shadowElevation = 4.dp
+                        // Floating Bottom Bar with frosted glass background and SHARP content
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(16.dp)
+                                .navigationBarsPadding()
                         ) {
-                            Text(
-                                "Swipe Up to Filter",
-                                modifier = Modifier.padding(8.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            // Glass background layer
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .liquidGlass(cornerRadius = 32, blurRadius = 40f)
                             )
+                            
+                            // SHARP Navigation content layer
+                            NavigationBar(
+                                containerColor = Color.Transparent,
+                                tonalElevation = 0.dp
+                            ) {
+                                NavigationBarItem(
+                                    icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
+                                    label = { Text("Saved") },
+                                    selected = pagerState.currentPage == 0,
+                                    onClick = { 
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(0)
+                                        }
+                                    }
+                                )
+                            
+                                NavigationBarItem(
+                                    icon = { 
+                                        Icon(
+                                            Icons.Default.Home, 
+                                            contentDescription = "Home",
+                                            modifier = Modifier.pointerInput(Unit) {
+                                                detectVerticalDragGestures { _, dragAmount ->
+                                                    if (dragAmount < -10) { // Drag up
+                                                        showFilterSheet = true
+                                                        if (!hasSeenSwipeTutorial) {
+                                                            hasSeenSwipeTutorial = true
+                                                            prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    },
+                                    label = { Text("Home") },
+                                    selected = pagerState.currentPage == 1,
+                                    onClick = { 
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(1)
+                                        }
+                                    }
+                                )
+
+                                NavigationBarItem(
+                                    icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
+                                    label = { Text("Recents") },
+                                    selected = pagerState.currentPage == 2,
+                                    onClick = { 
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(2)
+                                        }
+                                    }
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Icon(
-                            imageVector = Icons.Default.TouchApp,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(48.dp)
-                        )
+
+                        if (!hasSeenSwipeTutorial && pagerState.currentPage == 1) {
+                            val infiniteTransition = rememberInfiniteTransition(label = "tutorial")
+                            val yOffset by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = -100f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1500, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart
+                                ),
+                                label = "yOffset"
+                            )
+                            val alpha by infiniteTransition.animateFloat(
+                                initialValue = 1f,
+                                targetValue = 0f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1500, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart
+                                ),
+                                label = "alpha"
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 140.dp) // Adjusted for floating bar
+                                    .offset(y = yOffset.dp)
+                                    .alpha(alpha)
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Surface(
+                                        shape = MaterialTheme.shapes.medium,
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shadowElevation = 4.dp
+                                    ) {
+                                        Text(
+                                            "Swipe Up to Filter",
+                                            modifier = Modifier.padding(8.dp),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.TouchApp,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-    }
     }
 }

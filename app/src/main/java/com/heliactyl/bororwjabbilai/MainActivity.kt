@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
@@ -96,7 +99,21 @@ class MainActivity : ComponentActivity() {
             val transitionOffset = remember { mutableStateOf(Offset.Zero) }
             val transitionRadius = remember { Animatable(0f) }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            val backgroundBrush = if (useDarkTheme) {
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFF0F172A), Color(0xFF1E1E2F)),
+                    start = Offset(0f, 0f),
+                    end = Offset(1000f, 1000f)
+                )
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFFDEE9FB), Color(0xFFF1F5F9)),
+                    start = Offset(0f, 0f),
+                    end = Offset(1000f, 1000f)
+                )
+            }
+
+            Box(modifier = Modifier.fillMaxSize().background(backgroundBrush)) {
                 if (screenshotState.value != null) {
                     Image(
                         bitmap = screenshotState.value!!.asImageBitmap(),
@@ -127,7 +144,8 @@ class MainActivity : ComponentActivity() {
                                     this@drawWithContent.drawContent()
                                 }
                             },
-                        color = MaterialTheme.colorScheme.background
+                        color = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onBackground
                     ) {
                         SongApp(
                             songRepository = SongRepository(context),

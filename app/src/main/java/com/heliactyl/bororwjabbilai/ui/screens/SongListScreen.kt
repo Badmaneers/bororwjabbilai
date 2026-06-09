@@ -33,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,9 +42,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil.ImageLoader
@@ -53,6 +56,8 @@ import com.heliactyl.bororwjabbilai.ui.Occasion
 import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.ui.components.SocialRow
 import com.heliactyl.bororwjabbilai.ui.components.SongItem
+import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
+import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -69,7 +74,10 @@ fun SongListScreen(
     query: String = "",
     onQueryChange: (String) -> Unit = {},
     active: Boolean = false,
-    onActiveChange: (Boolean) -> Unit = {}
+    onActiveChange: (Boolean) -> Unit = {},
+    headerTitle: String? = null,
+    headerSubtitle: String? = null,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     var showInfoDialog by remember { mutableStateOf(false) }
 
@@ -120,8 +128,6 @@ fun SongListScreen(
         return (if (start > 0) "..." else "") + plainText.substring(start, end) + (if (end < plainText.length) "..." else "")
     }
 
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    
     val context = LocalContext.current
     val imageLoader = remember {
         ImageLoader.Builder(context)
@@ -132,11 +138,21 @@ fun SongListScreen(
     }
 
     if (showInfoDialog) {
-        AlertDialog(
-            onDismissRequest = { showInfoDialog = false },
-            title = { Text("Developer Info") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Dialog(onDismissRequest = { showInfoDialog = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .liquidGlass(cornerRadius = 32)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "Developer Info",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SocialRow(
                         text = "Instagram",
                         handle = "@heliactyl",
@@ -182,103 +198,62 @@ fun SongListScreen(
                         }
                     )
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showInfoDialog = false }) {
-                    Text("Close")
-                }
-            }
-        )
-    }
 
-    Box(Modifier.fillMaxSize()) {
-        if (!active) {
-            LazyColumn(
-                state = listState,
-                contentPadding = PaddingValues(top = statusBarHeight + 72.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(filteredSongs) { song ->
-                    SongItem(
-                        song = song, 
-                        isFavorite = favoriteIds.contains(song.id),
-                        snippet = if (query.isNotBlank()) getSnippet(song.lyrics, query) else null,
-                        onFavoriteClick = { onFavoriteClick(song) },
-                        onClick = { onSongClick(song) }
-                    )
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                    TextButton(onClick = { showInfoDialog = false }) {
+                        Text("Close", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
+    }
 
-        DockedSearchBar(
-            query = query,
-            onQueryChange = onQueryChange,
-            onSearch = { onActiveChange(false) },
-            active = active,
-            onActiveChange = onActiveChange,
-            placeholder = { Text("Search song by number or title") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon = {
-                if (active || query.isNotEmpty()) {
-                    IconButton(onClick = {
-                        if (query.isNotEmpty()) onQueryChange("") else onActiveChange(false)
-                    }) {
-                        Icon(Icons.Default.Close, contentDescription = "Clear")
-                    }
-                } else {
-                    Row {
-                        var themeButtonCenter by remember { mutableStateOf(Offset.Zero) }
-                        IconButton(
-                            modifier = Modifier.onGloballyPositioned { 
-                                val rootPos = it.positionInRoot()
-                                val size = it.size
-                                themeButtonCenter = Offset(
-                                    rootPos.x + size.width / 2f,
-                                    rootPos.y + size.height / 2f
-                                )
-                            },
-                            onClick = { onThemeCycle(themeButtonCenter) }
-                        ) {
-                            val icon = if (isDarkTheme) Icons.Default.NightsStay else Icons.Default.WbSunny
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = "Toggle Theme",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(onClick = { showInfoDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "Developer Info",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            },
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp) 
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(
+                top = contentPadding.calculateTopPadding() + 16.dp,
+                bottom = contentPadding.calculateBottomPadding() + 16.dp,
+                start = 16.dp, 
+                end = 16.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxSize()
         ) {
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(filteredSongs) { song ->
-                    SongItem(
-                        song = song,
-                        isFavorite = favoriteIds.contains(song.id),
-                        snippet = if (query.isNotBlank()) getSnippet(song.lyrics, query) else null,
-                        onFavoriteClick = { onFavoriteClick(song) },
-                        onClick = {
-                            onSongClick(song)
-                            // Keep active state for return
-                        }
+            // Reachability Header
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                ) {
+                    Text(
+                        text = when {
+                            filterOccasion != null -> filterOccasion.name
+                            filterChar != null -> "Letter: $filterChar"
+                            else -> headerTitle ?: "Discover"
+                        },
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = headerSubtitle ?: "Explore ${filteredSongs.size} sacred songs",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
+            }
+
+            items(filteredSongs) { song ->
+                SongItem(
+                    song = song, 
+                    isFavorite = favoriteIds.contains(song.id),
+                    snippet = if (query.isNotBlank()) getSnippet(song.lyrics, query) else null,
+                    onFavoriteClick = { onFavoriteClick(song) },
+                    onClick = { onSongClick(song) }
+                )
             }
         }
     }

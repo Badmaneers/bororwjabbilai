@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Share
@@ -48,29 +49,38 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
+import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
+import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
 
 fun shareLyrics(context: android.content.Context, song: Song, textToShare: String? = null) {
     val shareText = if (textToShare != null) {
         "\"$textToShare\"\n\n— From: ${song.title}"
     } else {
-        val fullLyrics = song.lyrics.joinToString("\n\n") { section ->
-            val numberPrefix = if (section.type != "chorus" && section.number != null) "${section.number}. " else ""
-            val linesText = section.lines.joinToString("\n")
-            "$numberPrefix$linesText"
+        if (song.isCustom) {
+            // Sharing custom song code
+            val repo = com.heliactyl.bororwjabbilai.CustomSongRepository(context)
+            val code = repo.exportSongAsCode(song)
+            "Custom Song: ${song.title}\n\nImport this song into Boro Rwjab Bilai app using this code:\n\n$code"
+        } else {
+            val fullLyrics = song.lyrics.joinToString("\n\n") { section ->
+                val numberPrefix = if (section.type != "chorus" && section.number != null) "${section.number}. " else ""
+                val linesText = section.lines.joinToString("\n")
+                "$numberPrefix$linesText"
+            }
+            "Song Title: ${song.title}\n\n$fullLyrics\n\nShared from Boro Rwjab Bilai App"
         }
-        "Song Title: ${song.title}\n\n$fullLyrics\n\nShared from Boro Rwjab Bilai App"
     }
 
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, shareText)
     }
-    context.startActivity(Intent.createChooser(intent, "Share Lyrics"))
+    context.startActivity(Intent.createChooser(intent, "Share Song"))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SongDetailScreen(song: Song, onBack: () -> Unit) {
+fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? = null) {
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
@@ -105,8 +115,12 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
             }
         },
         floatingActionButton = {
-            IconButton(
-                onClick = { shareLyrics(context, song, null) }
+            Box(
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .liquidGlass(cornerRadius = 20)
+                    .bouncyClick { shareLyrics(context, song, null) }
+                    .padding(12.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Share,
@@ -116,21 +130,24 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
             }
         },
         topBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .liquidGlass(cornerRadius = 0)
+                    .statusBarsPadding()
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .statusBarsPadding()
                         .padding(horizontal = 4.dp, vertical = 8.dp)
                         .height(IntrinsicSize.Min),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
                         onClick = onBack,
-                        modifier = Modifier.align(Alignment.Top)
+                        modifier = Modifier
+                            .align(Alignment.Top)
+                            .bouncyClick(onClick = onBack)
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
@@ -140,8 +157,8 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
                     }
                     
                     Text(
-                        text = song.title,
-                        style = MaterialTheme.typography.titleLarge,
+                        text = "${song.id}. ${song.title}",
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .weight(1f)
@@ -150,6 +167,15 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit) {
                     )
 
                     Row(modifier = Modifier.align(Alignment.Top)) {
+                        if (song.isCustom && onEdit != null) {
+                            IconButton(onClick = { onEdit(song) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Song",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                         IconButton(onClick = { 
                             if (fontSize > 12f) {
                                 fontSize -= 2f

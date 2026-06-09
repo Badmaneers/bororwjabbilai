@@ -10,7 +10,8 @@ data class Song(
     @SerializedName("title") val title: String,
     @SerializedName("lyrics") val lyrics: List<LyricSection> = emptyList(),
     @SerializedName("intentId") val intentId: String,
-    @SerializedName("isFavorite") var isFavorite: Boolean
+    @SerializedName("isFavorite") var isFavorite: Boolean,
+    @SerializedName("isCustom") val isCustom: Boolean = false
 )
 
 @Keep
