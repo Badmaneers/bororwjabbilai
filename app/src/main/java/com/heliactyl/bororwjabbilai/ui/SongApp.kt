@@ -160,7 +160,6 @@ fun SongApp(
                     .fillMaxWidth()
                     .padding(16.dp)
                     .liquidGlass(cornerRadius = 32)
-                    .padding(bottom = 32.dp)
             ) {
                 TabRow(
                     selectedTabIndex = filterPagerState.currentPage,
@@ -245,7 +244,17 @@ fun SongApp(
                 ) {
                     androidx.compose.material3.Tab(
                         selected = filterPagerState.currentPage == 0,
-                        onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(0) } },
+                        onClick = { 
+                            coroutineScope.launch { 
+                                filterPagerState.animateScrollToPage(
+                                    0, 
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    )
+                                ) 
+                            } 
+                        },
                         modifier = Modifier.zIndex(2f),
                         text = { Text("Letter", fontWeight = if (filterPagerState.currentPage == 0) FontWeight.Bold else FontWeight.Normal) },
                         selectedContentColor = MaterialTheme.colorScheme.primary,
@@ -253,7 +262,17 @@ fun SongApp(
                     )
                     androidx.compose.material3.Tab(
                         selected = filterPagerState.currentPage == 1,
-                        onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(1) } },
+                        onClick = { 
+                            coroutineScope.launch { 
+                                filterPagerState.animateScrollToPage(
+                                    1,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    )
+                                ) 
+                            } 
+                        },
                         modifier = Modifier.zIndex(2f),
                         text = { Text("Category", fontWeight = if (filterPagerState.currentPage == 1) FontWeight.Bold else FontWeight.Normal) },
                         selectedContentColor = MaterialTheme.colorScheme.primary,
@@ -263,7 +282,7 @@ fun SongApp(
 
                 HorizontalPager(
                     state = filterPagerState,
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 450.dp).animateContentSize()
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 600.dp).animateContentSize()
                 ) { page ->
                     when (page) {
                         0 -> {
@@ -385,7 +404,6 @@ fun SongApp(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
@@ -773,18 +791,21 @@ fun SongApp(
                         }
                     }
 
-                    // Floating Top Bar
+                    // Floating Top Bar with frosted glass background and SHARP content
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
+                        // Glass background layer
                         Box(
                             modifier = Modifier
                                 .matchParentSize()
                                 .liquidGlass(cornerRadius = 28, blurRadius = 40f)
                         )
+                        
+                        // SHARP Search content layer
                         androidx.compose.material3.DockedSearchBar(
                             query = query,
                             onQueryChange = { query = it },
@@ -805,9 +826,11 @@ fun SongApp(
                                     }
                                 } else {
                                     Row {
+                                        // Debug Test Button
                                         if (BuildConfig.DEBUG) {
                                             IconButton(onClick = {
                                                 coroutineScope.launch {
+                                                    // Force check ignore 24h
                                                     val url = java.net.URL("https://api.github.com/repos/Badmaneers/bororwjabbilai/releases/latest")
                                                     var errorDetail = ""
                                                     val result = withContext(Dispatchers.IO) {
@@ -826,7 +849,11 @@ fun SongApp(
                                                             null
                                                         }
                                                     }
-                                                    if (result != null) updateRelease = result
+                                                    if (result != null) {
+                                                        updateRelease = result
+                                                    } else {
+                                                        android.widget.Toast.makeText(context, "Update check failed: $errorDetail", android.widget.Toast.LENGTH_LONG).show()
+                                                    }
                                                 }
                                             }) {
                                                 Icon(
@@ -836,26 +863,46 @@ fun SongApp(
                                                 )
                                             }
                                         }
+
                                         IconButton(onClick = { showEditor = true }) {
-                                            Icon(Icons.Default.Add, "Add", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Add Custom Song",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
                                         IconButton(onClick = { showImportDialog = true }) {
-                                            Icon(Icons.Default.VerticalAlignBottom, "Import", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Icon(
+                                                imageVector = Icons.Default.VerticalAlignBottom,
+                                                contentDescription = "Import Song",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
                                         var themeButtonCenter by remember { mutableStateOf(Offset.Zero) }
                                         IconButton(
                                             modifier = Modifier.onGloballyPositioned { 
                                                 val rootPos = it.positionInRoot()
                                                 val size = it.size
-                                                themeButtonCenter = Offset(rootPos.x + size.width / 2f, rootPos.y + size.height / 2f)
+                                                themeButtonCenter = Offset(
+                                                    rootPos.x + size.width / 2f,
+                                                    rootPos.y + size.height / 2f
+                                                )
                                             },
                                             onClick = { onThemeCycle(themeButtonCenter) }
                                         ) {
                                             val icon = if (isDarkTheme) Icons.Default.NightsStay else Icons.Default.WbSunny
-                                            Icon(icon, "Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = "Toggle Theme",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
                                         IconButton(onClick = { showInfoDialog = true }) {
-                                            Icon(Icons.Default.Info, "Info", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Icon(
+                                                imageVector = Icons.Default.Info,
+                                                contentDescription = "Developer Info",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
                                     }
                                 }
@@ -894,49 +941,125 @@ fun SongApp(
                         }
                     }
 
-                    // Floating Bottom Bar
+                    // Floating Bottom Bar with frosted glass background and SHARP content
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(16.dp)
                             .navigationBarsPadding()
                     ) {
+                        // Glass background layer
                         Box(
                             modifier = Modifier
                                 .matchParentSize()
                                 .liquidGlass(cornerRadius = 32, blurRadius = 40f)
                         )
-                        NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
+                        
+                        // SHARP Navigation content layer
+                        NavigationBar(
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp
+                        ) {
                             NavigationBarItem(
-                                icon = { Icon(Icons.Default.Favorite, "Saved") },
+                                icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
                                 label = { Text("Saved") },
                                 selected = pagerState.currentPage == 0,
-                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } }
+                                onClick = { 
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(0)
+                                    }
+                                }
                             )
+                        
                             NavigationBarItem(
                                 icon = { 
-                                    Icon(Icons.Default.Home, "Home", modifier = Modifier.pointerInput(Unit) {
-                                        detectVerticalDragGestures { _, dragAmount ->
-                                            if (dragAmount < -10) { 
-                                                showFilterSheet = true
-                                                if (!hasSeenSwipeTutorial) {
-                                                    hasSeenSwipeTutorial = true
-                                                    prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                    Icon(
+                                        Icons.Default.Home, 
+                                        contentDescription = "Home",
+                                        modifier = Modifier.pointerInput(Unit) {
+                                            detectVerticalDragGestures { _, dragAmount ->
+                                                if (dragAmount < -10) { // Drag up
+                                                    showFilterSheet = true
+                                                    if (!hasSeenSwipeTutorial) {
+                                                        hasSeenSwipeTutorial = true
+                                                        prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                                    }
                                                 }
                                             }
                                         }
-                                    })
+                                    )
                                 },
                                 label = { Text("Home") },
                                 selected = pagerState.currentPage == 1,
-                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } }
+                                onClick = { 
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(1)
+                                    }
+                                }
                             )
+
                             NavigationBarItem(
-                                icon = { Icon(Icons.Default.History, "Recents") },
+                                icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
                                 label = { Text("Recents") },
                                 selected = pagerState.currentPage == 2,
-                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } }
+                                onClick = { 
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(2)
+                                    }
+                                }
                             )
+                        }
+                    }
+
+                    if (!hasSeenSwipeTutorial && pagerState.currentPage == 1 && selectedSong == null) {
+                        val infiniteTransition = rememberInfiniteTransition(label = "tutorial")
+                        val yOffset by infiniteTransition.animateFloat(
+                            initialValue = 0f,
+                            targetValue = -100f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1500, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart
+                            ),
+                            label = "yOffset"
+                        )
+                        val alpha by infiniteTransition.animateFloat(
+                            initialValue = 1f,
+                            targetValue = 0f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1500, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart
+                            ),
+                            label = "alpha"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 140.dp) // Adjusted for floating bar
+                                .offset(y = yOffset.dp)
+                                .alpha(alpha)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Surface(
+                                    shape = MaterialTheme.shapes.medium,
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shadowElevation = 4.dp
+                                ) {
+                                    Text(
+                                        "Swipe Up to Filter",
+                                        modifier = Modifier.padding(8.dp),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Icon(
+                                    imageVector = Icons.Default.TouchApp,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -984,43 +1107,6 @@ fun SongApp(
                     editingSong = null
                 }
             )
-        }
-
-        if (!hasSeenSwipeTutorial && pagerState.currentPage == 1 && selectedSong == null) {
-            val infiniteTransition = rememberInfiniteTransition(label = "tutorial")
-            val yOffset by infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = -100f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1500, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "yOffset"
-            )
-            val alpha by infiniteTransition.animateFloat(
-                initialValue = 1f,
-                targetValue = 0f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1500, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "alpha"
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 140.dp)
-                    .offset(y = yOffset.dp)
-                    .alpha(alpha)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer, shadowElevation = 4.dp) {
-                        Text("Swipe Up to Filter", modifier = Modifier.padding(8.dp), style = MaterialTheme.typography.labelMedium)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Icon(Icons.Default.TouchApp, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
-                }
-            }
         }
     }
 }
