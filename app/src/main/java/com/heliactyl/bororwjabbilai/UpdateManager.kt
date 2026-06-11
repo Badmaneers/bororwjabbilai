@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
@@ -74,34 +75,52 @@ class UpdateManager(private val context: Context) {
     }
 
     fun downloadApk(downloadUrl: String): Flow<Float> = flow {
-        withContext(Dispatchers.IO) {
-            val url = URL(downloadUrl)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.connect()
+        // Must NOT use withContext inside a flow {} builder — it violates flow's
+        // coroutine context and throws IllegalStateException at runtime.
+        // flowOn(Dispatchers.IO) at the end moves the whole upstream to IO correctly.
 
-            val fileLength = connection.contentLength
-            val inputStream = connection.inputStream
-            val outputFile = File(cacheDir, apkName)
-            
-            if (outputFile.exists()) outputFile.delete()
-            val outputStream = outputFile.outputStream()
-
-            val buffer = ByteArray(4096)
-            var totalBytesRead = 0L
-            var bytesRead: Int
-
-            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                totalBytesRead += bytesRead
-                outputStream.write(buffer, 0, bytesRead)
-                if (fileLength > 0) {
-                    emit(totalBytesRead.toFloat() / fileLength.toFloat())
-                }
+        // GitHub's browser_download_url issues a 301/302 redirect.
+        // HttpURLConnection won't auto-follow across http->https boundaries,
+        // so we resolve the redirect chain manually before streaming.
+        var resolvedUrl = downloadUrl
+        repeat(5) { // up to 5 redirect hops
+            val conn = (URL(resolvedUrl).openConnection() as HttpURLConnection).apply {
+                instanceFollowRedirects = false
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "BoroRwjabBilai-App")
+                connectTimeout = 10_000
+                readTimeout = 10_000
+                connect()
             }
+            val code = conn.responseCode
+            if (code in 300..399) {
+                resolvedUrl = conn.getHeaderField("Location") ?: return@repeat
+                conn.disconnect()
+            } else {
+                // Arrived at the real download endpoint — stream to disk
+                val fileLength = conn.contentLength
+                val outputFile = File(cacheDir, apkName)
+                if (outputFile.exists()) outputFile.delete()
 
-            outputStream.close()
-            inputStream.close()
+                conn.inputStream.use { input ->
+                    outputFile.outputStream().use { output ->
+                        val buffer = ByteArray(8192)
+                        var totalBytesRead = 0L
+                        var bytesRead: Int
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            totalBytesRead += bytesRead
+                            output.write(buffer, 0, bytesRead)
+                            if (fileLength > 0) {
+                                emit(totalBytesRead.toFloat() / fileLength.toFloat())
+                            }
+                        }
+                    }
+                }
+                conn.disconnect()
+                return@flow
+            }
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     fun installApk() {
         val apkFile = File(cacheDir, apkName)
