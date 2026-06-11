@@ -770,13 +770,13 @@ fun SongApp(
 
     Box(modifier = Modifier.fillMaxSize()) {
         val baseBlur by animateDpAsState(
-            targetValue = if (showFilterSheet || showInfoDialog || updateRelease != null) 10.dp else 0.dp,
+            targetValue = if (showFilterSheet || showInfoDialog || updateRelease != null || active) 10.dp else 0.dp,
             animationSpec = tween(durationMillis = 300),
             label = "baseBlur"
         )
-        val blurFraction by remember(sheetState, showInfoDialog, updateRelease) {
+        val blurFraction by remember(sheetState, showInfoDialog, updateRelease, active) {
             derivedStateOf {
-                if (showInfoDialog || updateRelease != null) return@derivedStateOf 1f
+                if (showInfoDialog || updateRelease != null || active) return@derivedStateOf 1f
                 try {
                     val offset = sheetState.requireOffset()
                     val fraction = 1f - (offset / screenHeightPx)
@@ -788,7 +788,7 @@ fun SongApp(
         }
         val blurRadius = baseBlur * blurFraction
 
-        // 1. MAIN APP CONTENT
+        // 1. MAIN APP CONTENT (BLURRED)
         Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
             Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { innerPadding ->
                 val topBarHeight = 140.dp
@@ -882,131 +882,7 @@ fun SongApp(
                         }
                     }
 
-                    // Floating Top Bar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Box(modifier = Modifier.matchParentSize().liquidGlass(cornerRadius = 28, blurRadius = 40f))
-                        androidx.compose.material3.DockedSearchBar(
-                            query = query,
-                            onQueryChange = { query = it },
-                            onSearch = { active = false },
-                            active = active,
-                            onActiveChange = { active = it },
-                            placeholder = { Text("Search song...") },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                            colors = androidx.compose.material3.SearchBarDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
-                            trailingIcon = {
-                                if (active || query.isNotEmpty()) {
-                                    IconButton(onClick = {
-                                        if (query.isNotEmpty()) query = "" else active = false
-                                    }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Clear")
-                                    }
-                                } else {
-                                    Row {
-                                        if (BuildConfig.DEBUG) {
-                                            IconButton(onClick = {
-                                                coroutineScope.launch {
-                                                    val url = java.net.URL("https://api.github.com/repos/Badmaneers/bororwjabbilai/releases/latest")
-                                                    var errorDetail = ""
-                                                    val result = withContext(Dispatchers.IO) {
-                                                        try {
-                                                            val conn = url.openConnection() as java.net.HttpURLConnection
-                                                            conn.setRequestProperty("User-Agent", "BoroRwjabBilai-App")
-                                                            if (conn.responseCode == 200) {
-                                                                val json = conn.inputStream.bufferedReader().use { it.readText() }
-                                                                com.google.gson.Gson().fromJson(json, com.heliactyl.bororwjabbilai.GitHubRelease::class.java)
-                                                            } else {
-                                                                errorDetail = "HTTP ${conn.responseCode}"
-                                                                null
-                                                            }
-                                                        } catch (e: Exception) {
-                                                            errorDetail = e.localizedMessage ?: "Unknown error"
-                                                            null
-                                                        }
-                                                    }
-                                                    if (result != null) {
-                                                        updateRelease = result
-                                                    } else {
-                                                        android.widget.Toast.makeText(context, "Update check failed: $errorDetail", android.widget.Toast.LENGTH_LONG).show()
-                                                    }
-                                                }
-                                            }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.BugReport,
-                                                    contentDescription = "Test Update",
-                                                    tint = MaterialTheme.colorScheme.error
-                                                )
-                                            }
-                                        }
-                                        IconButton(onClick = { showEditor = true }) {
-                                            Icon(Icons.Default.Add, contentDescription = "Add Custom Song", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                        IconButton(onClick = { showImportDialog = true }) {
-                                            Icon(Icons.Default.VerticalAlignBottom, contentDescription = "Import Song", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                        var themeButtonCenter by remember { mutableStateOf(Offset.Zero) }
-                                        IconButton(
-                                            modifier = Modifier.onGloballyPositioned {
-                                                val rootPos = it.positionInRoot()
-                                                val size = it.size
-                                                themeButtonCenter = Offset(rootPos.x + size.width / 2f, rootPos.y + size.height / 2f)
-                                            },
-                                            onClick = { onThemeCycle(themeButtonCenter) }
-                                        ) {
-                                            Icon(
-                                                imageVector = if (isDarkTheme) Icons.Default.NightsStay else Icons.Default.WbSunny,
-                                                contentDescription = "Toggle Theme",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        IconButton(onClick = { showInfoDialog = true }) {
-                                            Icon(Icons.Default.Info, contentDescription = "Developer Info", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            val filteredSongs = remember(query, allSongs) {
-                                if (query.isBlank()) allSongs
-                                else {
-                                    val q = query.trim()
-                                    allSongs.filter { song ->
-                                        val lyricsText = song.lyrics.flatMap { it.lines }.joinToString(" ")
-                                        song.title.contains(q, ignoreCase = true) ||
-                                                song.id.toString().contains(q) ||
-                                                lyricsText.contains(q, ignoreCase = true)
-                                    }
-                                }
-                            }
-                            androidx.compose.foundation.lazy.LazyColumn(
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                items(filteredSongs) { song ->
-                                    SongItem(
-                                        song = song,
-                                        isFavorite = favoriteIds.contains(song.id),
-                                        onFavoriteClick = { toggleFavorite(song) },
-                                        onClick = {
-                                            selectedSong = song
-                                            recentsRepository.addRecent(song.id)
-                                            recentIds = recentsRepository.getRecentIds()
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Floating Bottom Bar
+                    // Floating Bottom Bar (Inside blurred container)
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -1080,6 +956,130 @@ fun SongApp(
                                 Icon(Icons.Default.TouchApp, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        // 1.5 FLOATING SEARCH BAR (UNBLURRED)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Box(modifier = Modifier.matchParentSize().liquidGlass(cornerRadius = 28, blurRadius = 40f))
+            androidx.compose.material3.DockedSearchBar(
+                query = query,
+                onQueryChange = { query = it },
+                onSearch = { active = false },
+                active = active,
+                onActiveChange = { active = it },
+                placeholder = { Text("Search song...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                colors = androidx.compose.material3.SearchBarDefaults.colors(
+                    containerColor = Color.Transparent,
+                ),
+                trailingIcon = {
+                    if (active || query.isNotEmpty()) {
+                        IconButton(onClick = {
+                            if (query.isNotEmpty()) query = "" else active = false
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                        }
+                    } else {
+                        Row {
+                            if (BuildConfig.DEBUG) {
+                                IconButton(onClick = {
+                                    coroutineScope.launch {
+                                        val url = java.net.URL("https://api.github.com/repos/Badmaneers/bororwjabbilai/releases/latest")
+                                        var errorDetail = ""
+                                        val result = withContext(Dispatchers.IO) {
+                                            try {
+                                                val conn = url.openConnection() as java.net.HttpURLConnection
+                                                conn.setRequestProperty("User-Agent", "BoroRwjabBilai-App")
+                                                if (conn.responseCode == 200) {
+                                                    val json = conn.inputStream.bufferedReader().use { it.readText() }
+                                                    com.google.gson.Gson().fromJson(json, com.heliactyl.bororwjabbilai.GitHubRelease::class.java)
+                                                } else {
+                                                    errorDetail = "HTTP ${conn.responseCode}"
+                                                    null
+                                                }
+                                            } catch (e: Exception) {
+                                                errorDetail = e.localizedMessage ?: "Unknown error"
+                                                null
+                                            }
+                                        }
+                                        if (result != null) {
+                                            updateRelease = result
+                                        } else {
+                                            android.widget.Toast.makeText(context, "Update check failed: $errorDetail", android.widget.Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.BugReport,
+                                        contentDescription = "Test Update",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { showEditor = true }) {
+                                Icon(Icons.Default.Add, contentDescription = "Add Custom Song", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = { showImportDialog = true }) {
+                                Icon(Icons.Default.VerticalAlignBottom, contentDescription = "Import Song", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            var themeButtonCenter by remember { mutableStateOf(Offset.Zero) }
+                            IconButton(
+                                modifier = Modifier.onGloballyPositioned {
+                                    val rootPos = it.positionInRoot()
+                                    val size = it.size
+                                    themeButtonCenter = Offset(rootPos.x + size.width / 2f, rootPos.y + size.height / 2f)
+                                },
+                                onClick = { onThemeCycle(themeButtonCenter) }
+                            ) {
+                                Icon(
+                                    imageVector = if (isDarkTheme) Icons.Default.NightsStay else Icons.Default.WbSunny,
+                                    contentDescription = "Toggle Theme",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(onClick = { showInfoDialog = true }) {
+                                Icon(Icons.Default.Info, contentDescription = "Developer Info", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val filteredSongs = remember(query, allSongs) {
+                    if (query.isBlank()) allSongs
+                    else {
+                        val q = query.trim()
+                        allSongs.filter { song ->
+                            val lyricsText = song.lyrics.flatMap { it.lines }.joinToString(" ")
+                            song.title.contains(q, ignoreCase = true) ||
+                                    song.id.toString().contains(q) ||
+                                    lyricsText.contains(q, ignoreCase = true)
+                        }
+                    }
+                }
+                androidx.compose.foundation.lazy.LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filteredSongs) { song ->
+                        SongItem(
+                            song = song,
+                            isFavorite = favoriteIds.contains(song.id),
+                            onFavoriteClick = { toggleFavorite(song) },
+                            onClick = {
+                                selectedSong = song
+                                recentsRepository.addRecent(song.id)
+                                recentIds = recentsRepository.getRecentIds()
+                            }
+                        )
                     }
                 }
             }
