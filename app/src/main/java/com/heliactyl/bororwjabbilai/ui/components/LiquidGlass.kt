@@ -37,9 +37,9 @@ fun Modifier.liquidGlass(
     
     // Modern iOS-style frosted glass values
     val baseColor = color ?: if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.85f) // High alpha to simulate depth
+        Color(0xFF1C1C1E).copy(alpha = 0.85f)
     } else {
-        Color.White.copy(alpha = 0.8f)
+        Color.White.copy(alpha = 0.65f) // More transparent in light mode for better glass feel
     }
     
     val borderBrush = if (isDark) {
@@ -52,8 +52,8 @@ fun Modifier.liquidGlass(
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.8f),
-                Color.Black.copy(alpha = 0.05f)
+                Color.White.copy(alpha = 0.4f), // More subtle border in light mode
+                Color.Black.copy(alpha = 0.02f)
             )
         )
     }
@@ -73,11 +73,19 @@ fun Modifier.liquidGlass(
             }
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        baseColor.copy(alpha = if (isDark) baseColor.alpha * 1.05f else baseColor.alpha * 1.1f),
-                        baseColor,
-                        baseColor.copy(alpha = if (isDark) baseColor.alpha * 0.95f else baseColor.alpha * 0.85f)
-                    )
+                    colors = if (isDark) {
+                        listOf(
+                            baseColor.copy(alpha = baseColor.alpha * 1.05f),
+                            baseColor,
+                            baseColor.copy(alpha = baseColor.alpha * 0.95f)
+                        )
+                    } else {
+                        listOf(
+                            baseColor.copy(alpha = baseColor.alpha * 0.9f),
+                            baseColor.copy(alpha = baseColor.alpha * 1.1f),
+                            baseColor.copy(alpha = baseColor.alpha * 1.2f) // Heavier bottom frost for light mode
+                        )
+                    }
                 )
             )
             .border(

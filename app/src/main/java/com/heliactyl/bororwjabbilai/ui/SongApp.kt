@@ -215,7 +215,7 @@ fun SongApp(
                                         .clip(RoundedCornerShape(22.dp))
                                         .background(
                                             if (isDark) Color.White.copy(alpha = 0.16f)
-                                            else Color.White.copy(alpha = 0.85f)
+                                            else Color.White.copy(alpha = 0.80f)
                                         )
                                         .liquidGlass(cornerRadius = 22, color = Color.Transparent, blurRadius = 22f)
                                 ) {
@@ -228,7 +228,7 @@ fun SongApp(
                                             .background(
                                                 Brush.verticalGradient(
                                                     colors = listOf(
-                                                        Color.White.copy(alpha = if (isDark) 0.30f else 0.55f),
+                                                        Color.White.copy(alpha = if (isDark) 0.30f else 0.50f),
                                                         Color.Transparent
                                                     )
                                                 )
@@ -309,13 +309,14 @@ fun SongApp(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     chars.forEach { char ->
+                                        val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
                                         Box(
                                             modifier = Modifier
                                                 .liquidGlass(
                                                     color = if (filterChar == char)
                                                         MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                                     else
-                                                        Color.White.copy(alpha = 0.05f),
+                                                        if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f),
                                                     cornerRadius = 12
                                                 )
                                                 .bouncyClick {
@@ -370,6 +371,7 @@ fun SongApp(
                                 ) {
                                     items(occasionFilters.size) { index ->
                                         val occasion = occasionFilters[index]
+                                        val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -377,7 +379,7 @@ fun SongApp(
                                                     color = if (filterOccasion == occasion)
                                                         MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                                     else
-                                                        Color.White.copy(alpha = 0.05f),
+                                                        if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f),
                                                     cornerRadius = 16
                                                 )
                                                 .bouncyClick {
