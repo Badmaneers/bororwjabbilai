@@ -121,7 +121,15 @@ fun SongApp(
         withContext(Dispatchers.IO) {
             songs = songRepository.getSongs()
         }
-        updateRelease = updateManager.checkForUpdate()
+        
+        // Only check for updates once a day
+        val lastCheckDate = prefs.getString("last_update_check_date", "")
+        val currentDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+        
+        if (lastCheckDate != currentDate) {
+            updateRelease = updateManager.checkForUpdate()
+            prefs.edit().putString("last_update_check_date", currentDate).apply()
+        }
     }
 
     LaunchedEffect(pagerState.currentPage) {
