@@ -1053,15 +1053,33 @@ fun SongApp(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                val filteredSongs = remember(query, allSongs) {
-                    if (query.isBlank()) allSongs
+                val filteredSongsWithSnippets = remember(query, allSongs) {
+                    if (query.isBlank()) allSongs.map { it to null }
                     else {
                         val q = query.trim()
-                        allSongs.filter { song ->
-                            val lyricsText = song.lyrics.flatMap { it.lines }.joinToString(" ")
-                            song.title.contains(q, ignoreCase = true) ||
-                                    song.id.toString().contains(q) ||
-                                    lyricsText.contains(q, ignoreCase = true)
+                        allSongs.mapNotNull { song ->
+                            val allLyrics = song.lyrics.flatMap { it.lines }.joinToString(" ")
+                            val titleMatch = song.title.contains(q, ignoreCase = true)
+                            val idMatch = song.id.toString().contains(q)
+                            val lyricsMatch = allLyrics.contains(q, ignoreCase = true)
+
+                            if (titleMatch || idMatch || lyricsMatch) {
+                                val snippet = if (lyricsMatch) {
+                                    val index = allLyrics.indexOf(q, ignoreCase = true)
+                                    val start = (index - 30).coerceAtLeast(0)
+                                    val end = (index + q.length + 40).coerceAtMost(allLyrics.length)
+                                    val rawSnippet = allLyrics.substring(start, end).trim()
+                                    
+                                    val prefix = if (start > 0) "..." else ""
+                                    val suffix = if (end < allLyrics.length) "..." else ""
+                                    "$prefix$rawSnippet$suffix"
+                                } else if (song.lyrics.isNotEmpty() && song.lyrics[0].lines.isNotEmpty()) {
+                                    // Fallback to first line if title/id matched but lyrics didn't
+                                    song.lyrics[0].lines[0]
+                                } else null
+                                
+                                song to snippet
+                            } else null
                         }
                     }
                 }
@@ -1069,10 +1087,12 @@ fun SongApp(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filteredSongs) { song ->
+                    items(filteredSongsWithSnippets.size) { index ->
+                        val (song, snippet) = filteredSongsWithSnippets[index]
                         SongItem(
                             song = song,
                             isFavorite = favoriteIds.contains(song.id),
+                            snippet = snippet,
                             onFavoriteClick = { toggleFavorite(song) },
                             onClick = {
                                 selectedSong = song
