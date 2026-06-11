@@ -176,56 +176,62 @@ fun SongApp(
                     divider = {},
                     indicator = { tabPositions ->
                         if (tabPositions.isNotEmpty()) {
-                            // Calculate a continuous page value from 0 to N-1
+                            val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
                             val continuousPage = filterPagerState.currentPage + filterPagerState.currentPageOffsetFraction
                             val index = continuousPage.toInt().coerceIn(0, tabPositions.size - 2)
                             val fraction = continuousPage - index
-                            
+
                             val currentTab = tabPositions[index]
                             val nextTab = tabPositions[index + 1]
-                            
-                            // Smoothly interpolate position and width
+
                             val lerpLeft = currentTab.left + (nextTab.left - currentTab.left) * fraction
                             val lerpWidth = currentTab.width + (nextTab.width - currentTab.width) * fraction
-                            
-                            // Adjust these values to make the pill smaller
-                            val horizontalPadding = 32.dp
-                            val verticalPadding = 10.dp
-                            val bubbleWidth = lerpWidth - (horizontalPadding * 2)
-                            
-                            Box(
-                                Modifier
-                                    .fillMaxHeight()
-                                    .width(bubbleWidth)
-                                    .offset {
-                                        IntOffset(x = (lerpLeft + horizontalPadding).roundToPx(), y = 0)
-                                    }
-                                    .padding(vertical = verticalPadding)
-                                    .zIndex(0f)
-                                    .liquidGlass(
-                                        cornerRadius = 20,
-                                        color = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) 
-                                            Color.White.copy(alpha = 0.12f) 
-                                        else 
-                                            Color.White.copy(alpha = 0.85f),
-                                        blurRadius = 20f
-                                    )
-                            ) {
+
+                            // insetPadding shrinks the pill inward from each tab's edges
+                            val insetPadding = 6.dp
+                            val verticalPadding = 6.dp
+
+                            // The indicator container fills the entire TabRow width.
+                            // We clip it so the pill can never bleed outside the row bounds.
+                            Box(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp))) {
                                 Box(
                                     Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 12.dp, vertical = 2.dp)
+                                        .fillMaxHeight()
+                                        .width(lerpWidth - (insetPadding * 2))
+                                        .offset {
+                                            // lerpLeft is already the absolute left edge of the current tab
+                                            // within the indicator container, so just add the inset
+                                            IntOffset(x = (lerpLeft + insetPadding).roundToPx(), y = 0)
+                                        }
+                                        .padding(vertical = verticalPadding)
+                                        .zIndex(1f)
+                                        .clip(RoundedCornerShape(20.dp))
                                         .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    Color.White.copy(alpha = 0.4f),
-                                                    Color.White.copy(alpha = 0.05f),
-                                                    Color.Transparent
-                                                )
-                                            ),
-                                            RoundedCornerShape(20.dp)
+                                            if (isDark) Color.White.copy(alpha = 0.15f)
+                                            else Color.White.copy(alpha = 0.80f)
                                         )
-                                )
+                                        .liquidGlass(
+                                            cornerRadius = 20,
+                                            color = Color.Transparent,
+                                            blurRadius = 18f
+                                        )
+                                ) {
+                                    // Top specular highlight
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight(0.45f)
+                                            .align(Alignment.TopCenter)
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    colors = listOf(
+                                                        Color.White.copy(alpha = if (isDark) 0.30f else 0.55f),
+                                                        Color.Transparent
+                                                    )
+                                                )
+                                            )
+                                    )
+                                }
                             }
                         }
                     }
@@ -233,7 +239,7 @@ fun SongApp(
                     androidx.compose.material3.Tab(
                         selected = filterPagerState.currentPage == 0,
                         onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(0) } },
-                        modifier = Modifier.zIndex(1f),
+                        modifier = Modifier.zIndex(2f),
                         text = { Text("Letter", fontWeight = if (filterPagerState.currentPage == 0) FontWeight.Bold else FontWeight.Normal) },
                         selectedContentColor = MaterialTheme.colorScheme.primary,
                         unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -241,7 +247,7 @@ fun SongApp(
                     androidx.compose.material3.Tab(
                         selected = filterPagerState.currentPage == 1,
                         onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(1) } },
-                        modifier = Modifier.zIndex(1f),
+                        modifier = Modifier.zIndex(2f),
                         text = { Text("Category", fontWeight = if (filterPagerState.currentPage == 1) FontWeight.Bold else FontWeight.Normal) },
                         selectedContentColor = MaterialTheme.colorScheme.primary,
                         unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
