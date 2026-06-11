@@ -187,33 +187,40 @@ fun SongApp(
                             val lerpLeft = currentTab.left + (nextTab.left - currentTab.left) * fraction
                             val lerpWidth = currentTab.width + (nextTab.width - currentTab.width) * fraction
 
-                            // insetPadding shrinks the pill inward from each tab's edges
-                            val insetPadding = 6.dp
-                            val verticalPadding = 6.dp
+                            // "Liquid" Viscosity logic: Stretch pill when moving
+                            val baseWidth = 75.dp
+                            val maxStretch = 45.dp
+                            
+                            // Use a sine-based stretch for a more "organic" expansion
+                            val stretchProgress = kotlin.math.sin(fraction * kotlin.math.PI.toFloat())
+                            val dynamicWidth = baseWidth + (maxStretch * stretchProgress)
+                            
+                            val tabCenter = lerpLeft + (lerpWidth / 2)
+                            val bubbleOffset = tabCenter - (dynamicWidth / 2)
 
-                            // The indicator container fills the entire TabRow width.
-                            // We clip it so the pill can never bleed outside the row bounds.
+                            val verticalPadding = 8.dp
+
                             Box(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp))) {
                                 Box(
                                     Modifier
                                         .fillMaxHeight()
-                                        .width(lerpWidth - (insetPadding * 2))
+                                        .width(dynamicWidth)
                                         .offset {
-                                            // lerpLeft is already the absolute left edge of the current tab
-                                            // within the indicator container, so just add the inset
-                                            IntOffset(x = (lerpLeft + insetPadding).roundToPx(), y = 0)
+                                            IntOffset(x = bubbleOffset.roundToPx(), y = 0)
                                         }
                                         .padding(vertical = verticalPadding)
                                         .zIndex(1f)
-                                        .clip(RoundedCornerShape(20.dp))
+                                        .clip(RoundedCornerShape(22.dp))
                                         .background(
-                                            if (isDark) Color.White.copy(alpha = 0.15f)
-                                            else Color.White.copy(alpha = 0.80f)
+                                            if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) 
+                                                Color.White.copy(alpha = 0.16f)
+                                            else 
+                                                Color.White.copy(alpha = 0.85f)
                                         )
                                         .liquidGlass(
-                                            cornerRadius = 20,
+                                            cornerRadius = 22,
                                             color = Color.Transparent,
-                                            blurRadius = 18f
+                                            blurRadius = 22f
                                         )
                                 ) {
                                     // Top specular highlight
