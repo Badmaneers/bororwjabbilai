@@ -59,6 +59,7 @@ import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
 import com.heliactyl.bororwjabbilai.ui.occasionFilters
 import com.heliactyl.bororwjabbilai.ui.screens.SongDetailScreen
 import com.heliactyl.bororwjabbilai.ui.screens.SongListScreen
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -892,12 +893,83 @@ fun SongApp(
                             .navigationBarsPadding()
                             .liquidGlass(cornerRadius = 32)
                     ) {
-                        NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
+                        // Glassy Pill Indicator
+                        val continuousPage = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                        val slotWidthFraction = 1f / 3f
+                        
+                        // Bubble dimensions (matching filter tab style)
+                        val baseWidth = 100.dp
+                        val bubbleHeight = 56.dp
+                        
+                        Box(Modifier.fillMaxWidth().height(80.dp)) { 
+                            val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+                            
+                            BoxWithConstraints(Modifier.fillMaxSize()) {
+                                val totalWidthPx = constraints.maxWidth
+                                val slotWidthPx = totalWidthPx / 3f
+                                
+                                val targetCenterPx = (continuousPage + 0.5f) * slotWidthPx
+                                
+                                // Organic sine-stretch while sliding
+                                val pageIndex = continuousPage.toInt()
+                                val fraction = continuousPage - pageIndex
+                                val stretchProgress = kotlin.math.sin(fraction * kotlin.math.PI.toFloat())
+                                val maxStretch = 40.dp
+                                val dynamicWidth = baseWidth + (maxStretch * stretchProgress)
+                                
+                                val bubbleWidthPx = with(LocalDensity.current) { dynamicWidth.toPx() }
+                                val bubbleOffsetPx = targetCenterPx - (bubbleWidthPx / 2f)
+                                
+                                Box(
+                                    Modifier
+                                        .offset { IntOffset(bubbleOffsetPx.roundToInt(), 0) }
+                                        .align(Alignment.CenterStart)
+                                        .size(dynamicWidth, bubbleHeight)
+                                        .zIndex(0f)
+                                        .clip(RoundedCornerShape(22.dp))
+                                        .background(
+                                            if (isDark) Color.White.copy(alpha = 0.12f)
+                                            else Color.White.copy(alpha = 0.85f)
+                                        )
+                                        .liquidGlass(cornerRadius = 22, color = Color.Transparent, blurRadius = 22f)
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight(0.40f)
+                                            .align(Alignment.TopCenter)
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    colors = listOf(
+                                                        Color.White.copy(alpha = if (isDark) 0.25f else 0.40f),
+                                                        Color.Transparent
+                                                    )
+                                                )
+                                            )
+                                    )
+                                }
+                            }
+                        }
+
+                        NavigationBar(
+                            containerColor = Color.Transparent, 
+                            tonalElevation = 0.dp,
+                            modifier = Modifier.zIndex(1f)
+                        ) {
+                            val navItemColors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Color.Transparent,
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+
                             NavigationBarItem(
                                 icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
                                 label = { Text("Saved") },
                                 selected = pagerState.currentPage == 0,
-                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } }
+                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
+                                colors = navItemColors
                             )
                             NavigationBarItem(
                                 icon = {
@@ -919,13 +991,15 @@ fun SongApp(
                                 },
                                 label = { Text("Home") },
                                 selected = pagerState.currentPage == 1,
-                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } }
+                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
+                                colors = navItemColors
                             )
                             NavigationBarItem(
                                 icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
                                 label = { Text("Recents") },
                                 selected = pagerState.currentPage == 2,
-                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } }
+                                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } },
+                                colors = navItemColors
                             )
                         }
                     }
