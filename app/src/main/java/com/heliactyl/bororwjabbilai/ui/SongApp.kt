@@ -931,8 +931,14 @@ fun SongApp(
                                             if (isDark) Color.White.copy(alpha = 0.12f)
                                             else Color.White.copy(alpha = 0.85f)
                                         )
-                                        .liquidGlass(cornerRadius = 22, color = Color.Transparent, blurRadius = 22f)
+                                        .liquidGlass(
+                                            cornerRadius = 22, 
+                                            color = Color.Transparent, 
+                                            blurRadius = 22f,
+                                            borderWidth = if (isDark) 1f else 1.5f // Thicker border for small pill
+                                        )
                                 ) {
+                                    // Top specular highlight for elegance
                                     Box(
                                         Modifier
                                             .fillMaxWidth()
