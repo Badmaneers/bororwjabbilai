@@ -173,17 +173,19 @@ fun SongApp(
                     .liquidGlass(cornerRadius = 32)
                     .padding(bottom = 32.dp)
             ) {
+                Spacer(modifier = Modifier.height(24.dp))
+                
                 // ── Tab selector ──────────────────────────────────────────────
                 TabRow(
                     selectedTabIndex = filterPagerState.currentPage,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .height(48.dp)
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                        .height(52.dp)
                         .liquidGlass(
-                            cornerRadius = 24,
+                            cornerRadius = 26,
                             color = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f)
-                                Color.White.copy(alpha = 0.03f)
+                                Color.White.copy(alpha = 0.04f)
                             else
                                 Color.Black.copy(alpha = 0.02f)
                         ),
@@ -204,15 +206,15 @@ fun SongApp(
 
                             // Organic sine-stretch while sliding
                             val stretchProgress = kotlin.math.sin(fraction * kotlin.math.PI.toFloat())
-                            val baseWidth = 75.dp
-                            val maxStretch = 45.dp
+                            val baseWidth = 85.dp
+                            val maxStretch = 40.dp
                             val dynamicWidth = baseWidth + (maxStretch * stretchProgress)
 
                             val tabCenter = lerpLeft + (lerpWidth / 2)
                             val bubbleOffset = tabCenter - (dynamicWidth / 2)
 
                             // Clip wrapper prevents pill bleeding outside rounded row bounds
-                            Box(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp))) {
+                            Box(Modifier.fillMaxSize().clip(RoundedCornerShape(26.dp))) {
                                 Box(
                                     Modifier
                                         .fillMaxHeight()
@@ -220,23 +222,23 @@ fun SongApp(
                                         .offset { IntOffset(x = bubbleOffset.roundToPx(), y = 0) }
                                         .padding(vertical = 8.dp)
                                         .zIndex(1f)
-                                        .clip(RoundedCornerShape(22.dp))
+                                        .clip(RoundedCornerShape(24.dp))
                                         .background(
-                                            if (isDark) Color.White.copy(alpha = 0.16f)
-                                            else Color.White.copy(alpha = 0.80f)
+                                            if (isDark) Color.White.copy(alpha = 0.12f)
+                                            else Color.White.copy(alpha = 0.85f)
                                         )
-                                        .liquidGlass(cornerRadius = 22, color = Color.Transparent, blurRadius = 22f)
+                                        .liquidGlass(cornerRadius = 24, color = Color.Transparent, blurRadius = 24f)
                                 ) {
-                                    // Top specular highlight
+                                    // Top specular highlight for elegance
                                     Box(
                                         Modifier
                                             .fillMaxWidth()
-                                            .fillMaxHeight(0.45f)
+                                            .fillMaxHeight(0.40f)
                                             .align(Alignment.TopCenter)
                                             .background(
                                                 Brush.verticalGradient(
                                                     colors = listOf(
-                                                        Color.White.copy(alpha = if (isDark) 0.30f else 0.50f),
+                                                        Color.White.copy(alpha = if (isDark) 0.25f else 0.40f),
                                                         Color.Transparent
                                                     )
                                                 )
