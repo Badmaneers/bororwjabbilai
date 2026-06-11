@@ -1,6 +1,7 @@
 package com.heliactyl.bororwjabbilai.ui.screens
 
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.util.Log
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -19,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
@@ -27,8 +27,10 @@ import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -45,31 +47,46 @@ fun CameraOcrScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     val cameraExecutor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
-    val imageCapture: ImageCapture = remember { ImageCapture.Builder().build() }
+    val imageCapture: ImageCapture = remember {
+        ImageCapture.Builder()
+            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+            .build()
+    }
     val ocrManager = remember { OcrManager() }
-    
+
     var isProcessing by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Track the actual pixel size of the composable so we can map frame → bitmap coords
+    var viewSize by remember { mutableStateOf(IntSize.Zero) }
+
+    // Frame occupies 80% width and 60% height of the view, centered
+    val frameWidthFraction = 0.8f
+    val frameHeightFraction = 0.6f
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { viewSize = it.size }
+    ) {
         AndroidView(
             factory = { ctx ->
                 val previewView = PreviewView(ctx)
+                // FILL CENTER so the preview scales uniformly — keeps frame alignment honest
+                previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                 cameraProviderFuture.addListener({
                     val cameraProvider = cameraProviderFuture.get()
-                    val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-                    
-                    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                    
+                    val preview = Preview.Builder()
+                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                        .build()
+                        .also { it.setSurfaceProvider(previewView.surfaceProvider) }
                     try {
                         cameraProvider.unbindAll()
                         cameraProvider.bindToLifecycle(
                             lifecycleOwner,
-                            cameraSelector,
+                            CameraSelector.DEFAULT_BACK_CAMERA,
                             preview,
                             imageCapture
                         )
@@ -82,39 +99,37 @@ fun CameraOcrScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Scanning Frame Overlay
+        // Dimming overlay with transparent hole cut out for the frame
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val canvasWidth = size.width
-            val canvasHeight = size.height
-            
-            // Define the frame size (80% width, 60% height)
-            val frameWidth = canvasWidth * 0.8f
-            val frameHeight = canvasHeight * 0.6f
-            val left = (canvasWidth - frameWidth) / 2
-            val top = (canvasHeight - frameHeight) / 2
-            
-            val frameRect = Rect(left, top, left + frameWidth, top + frameHeight)
-            val framePath = Path().apply {
-                addRoundRect(RoundRect(frameRect, CornerRadius(24.dp.toPx(), 24.dp.toPx())))
-            }
+            val frameW = size.width * frameWidthFraction
+            val frameH = size.height * frameHeightFraction
+            val left = (size.width - frameW) / 2f
+            val top = (size.height - frameH) / 2f
 
-            // Draw semi-transparent background with a hole for the frame
+            val framePath = Path().apply {
+                addRoundRect(
+                    RoundRect(
+                        Rect(left, top, left + frameW, top + frameH),
+                        CornerRadius(24.dp.toPx())
+                    )
+                )
+            }
             clipPath(framePath, clipOp = ClipOp.Difference) {
-                drawRect(Color.Black.copy(alpha = 0.5f))
+                drawRect(Color.Black.copy(alpha = 0.55f))
             }
         }
-        
-        // Frame Border
+
+        // Frame border
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .fillMaxHeight(0.6f)
-                    .border(2.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(24.dp))
+                    .fillMaxWidth(frameWidthFraction)
+                    .fillMaxHeight(frameHeightFraction)
+                    .border(2.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(24.dp))
             )
         }
 
-        // UI Controls
+        // Back button
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -147,6 +162,15 @@ fun CameraOcrScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
+                    text = "Hold phone upright in portrait mode",
+                    color = Color.White.copy(alpha = 0.75f),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier
+                        .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
                     text = "Align lyrics within the frame",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium,
@@ -157,35 +181,61 @@ fun CameraOcrScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 FloatingActionButton(
                     onClick = {
+                        if (viewSize == IntSize.Zero) return@FloatingActionButton
                         isProcessing = true
                         imageCapture.takePicture(
                             cameraExecutor,
                             object : ImageCapture.OnImageCapturedCallback() {
                                 override fun onCaptureSuccess(image: ImageProxy) {
-                                    val fullBitmap = image.toBitmap()
+                                    val rawBitmap = image.toBitmap()
+                                    val rotationDegrees = image.imageInfo.rotationDegrees
                                     image.close()
 
-                                    // Crop bitmap to match the visual frame (80% width, 60% height)
-                                    val width = fullBitmap.width
-                                    val height = fullBitmap.height
-                                    
-                                    val cropWidth = (width * 0.8f).toInt()
-                                    val cropHeight = (height * 0.6f).toInt()
-                                    val left = (width - cropWidth) / 2
-                                    val top = (height - cropHeight) / 2
-                                    
+                                    // 1. Rotate the bitmap to match screen orientation
+                                    val bitmap = if (rotationDegrees != 0) {
+                                        val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
+                                        Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.width, rawBitmap.height, matrix, true)
+                                    } else {
+                                        rawBitmap
+                                    }
+
+                                    // 2. The preview uses FILL_CENTER with a 4:3 aspect ratio.
+                                    //    Work out how the bitmap is scaled/offset onto the view.
+                                    val bmpW = bitmap.width.toFloat()
+                                    val bmpH = bitmap.height.toFloat()
+                                    val viewW = viewSize.width.toFloat()
+                                    val viewH = viewSize.height.toFloat()
+
+                                    // Scale that makes the bitmap fill the view (FILL_CENTER = cover)
+                                    val scale = maxOf(viewW / bmpW, viewH / bmpH)
+
+                                    // How much of the bitmap is visible (in bitmap pixels)
+                                    val visibleBmpW = viewW / scale
+                                    val visibleBmpH = viewH / scale
+
+                                    // Top-left corner of the visible region in bitmap coords
+                                    val bmpOffsetX = (bmpW - visibleBmpW) / 2f
+                                    val bmpOffsetY = (bmpH - visibleBmpH) / 2f
+
+                                    // 3. Frame in view coords → frame in bitmap coords
+                                    val frameViewW = viewW * frameWidthFraction
+                                    val frameViewH = viewH * frameHeightFraction
+                                    val frameViewLeft = (viewW - frameViewW) / 2f
+                                    val frameViewTop = (viewH - frameViewH) / 2f
+
+                                    val cropLeft   = (bmpOffsetX + frameViewLeft  / scale).toInt().coerceAtLeast(0)
+                                    val cropTop    = (bmpOffsetY + frameViewTop   / scale).toInt().coerceAtLeast(0)
+                                    val cropWidth  = (frameViewW / scale).toInt().coerceAtMost(bitmap.width  - cropLeft)
+                                    val cropHeight = (frameViewH / scale).toInt().coerceAtMost(bitmap.height - cropTop)
+
                                     val croppedBitmap = Bitmap.createBitmap(
-                                        fullBitmap,
-                                        left,
-                                        top,
-                                        cropWidth,
-                                        cropHeight
+                                        bitmap, cropLeft, cropTop, cropWidth, cropHeight
                                     )
 
                                     coroutineScope.launch {
                                         val recognizedText = ocrManager.recognizeText(croppedBitmap)
                                         isProcessing = false
-                                        if (recognizedText != null) {
+                                        if (!recognizedText.isNullOrBlank()) {
                                             onTextRecognized(recognizedText)
                                         }
                                     }
@@ -209,8 +259,6 @@ fun CameraOcrScreen(
     }
 
     DisposableEffect(Unit) {
-        onDispose {
-            cameraExecutor.shutdown()
-        }
+        onDispose { cameraExecutor.shutdown() }
     }
 }
