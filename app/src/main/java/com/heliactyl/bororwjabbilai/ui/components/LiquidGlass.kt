@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.Dp
 @Composable
 fun Modifier.liquidGlass(
     color: Color? = null,
-    borderWidth: Float = 1f,
+    borderWidth: Float? = null,
     cornerRadius: Int = 24,
     blurRadius: Float = 0f,
 ): Modifier {
@@ -37,23 +37,26 @@ fun Modifier.liquidGlass(
     
     // Modern iOS-style frosted glass values
     val baseColor = color ?: if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.85f)
+        Color(0xFF1C1C1E).copy(alpha = 0.70f)
     } else {
-        Color.White.copy(alpha = 0.65f) // More transparent in light mode for better glass feel
+        Color.White.copy(alpha = 0.50f) // Slightly more transparent for better contrast with borders
     }
+    
+    val finalBorderWidth = borderWidth ?: if (isDark) 1f else 1.2f
     
     val borderBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.15f),
-                Color.White.copy(alpha = 0.05f)
+                Color.White.copy(alpha = 0.22f),
+                Color.White.copy(alpha = 0.08f)
             )
         )
     } else {
+        // High-contrast elegant border for light mode
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.4f), // More subtle border in light mode
-                Color.Black.copy(alpha = 0.02f)
+                Color.White.copy(alpha = 0.90f), // Strong top specular
+                Color.Black.copy(alpha = 0.12f)  // Subtle bottom definition
             )
         )
     }
@@ -75,21 +78,21 @@ fun Modifier.liquidGlass(
                 Brush.verticalGradient(
                     colors = if (isDark) {
                         listOf(
-                            baseColor.copy(alpha = baseColor.alpha * 1.05f),
+                            baseColor.copy(alpha = baseColor.alpha * 1.1f),
                             baseColor,
-                            baseColor.copy(alpha = baseColor.alpha * 0.95f)
+                            baseColor.copy(alpha = baseColor.alpha * 0.9f)
                         )
                     } else {
                         listOf(
-                            baseColor.copy(alpha = baseColor.alpha * 0.9f),
-                            baseColor.copy(alpha = baseColor.alpha * 1.1f),
-                            baseColor.copy(alpha = baseColor.alpha * 1.2f) // Heavier bottom frost for light mode
+                            baseColor.copy(alpha = baseColor.alpha * 0.8f),
+                            baseColor,
+                            baseColor.copy(alpha = baseColor.alpha * 1.2f)
                         )
                     }
                 )
             )
             .border(
-                width = borderWidth.dp,
+                width = finalBorderWidth.dp,
                 brush = borderBrush,
                 shape = RoundedCornerShape(cornerRadius.dp)
             )
@@ -125,13 +128,14 @@ fun Modifier.bouncyClick(
 @Composable
 fun LiquidGlassCard(
     modifier: Modifier = Modifier,
+    cornerRadius: Int = 24,
     onClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Box(
         modifier = modifier
             .bouncyClick(onClick = onClick)
-            .liquidGlass()
+            .liquidGlass(cornerRadius = cornerRadius)
     ) {
         Box(modifier = Modifier.padding(16.dp)) {
             content()

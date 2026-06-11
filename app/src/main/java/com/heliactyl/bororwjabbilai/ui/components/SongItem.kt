@@ -33,7 +33,8 @@ fun SongItem(
 ) {
     LiquidGlassCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

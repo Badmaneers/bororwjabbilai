@@ -890,8 +890,8 @@ fun SongApp(
                             .align(Alignment.BottomCenter)
                             .padding(16.dp)
                             .navigationBarsPadding()
+                            .liquidGlass(cornerRadius = 32)
                     ) {
-                        Box(modifier = Modifier.matchParentSize().liquidGlass(cornerRadius = 32, blurRadius = 40f))
                         NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
                             NavigationBarItem(
                                 icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
@@ -969,8 +969,8 @@ fun SongApp(
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
+                .liquidGlass(cornerRadius = 28)
         ) {
-            Box(modifier = Modifier.matchParentSize().liquidGlass(cornerRadius = 28, blurRadius = 40f))
             androidx.compose.material3.DockedSearchBar(
                 query = query,
                 onQueryChange = { query = it },
