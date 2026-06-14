@@ -1,45 +1,21 @@
 package com.heliactyl.bororwjabbilai.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.*
 import androidx.compose.foundation.text.selection.SelectionContainer
 import android.content.Intent
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -47,10 +23,12 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
 import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
 import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
+import kotlinx.coroutines.delay
 
 fun shareLyrics(context: android.content.Context, song: Song, textToShare: String? = null) {
     val shareText = if (textToShare != null) {
@@ -88,6 +66,16 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
     var keepScreenOn by remember { mutableStateOf(prefs.getBoolean("keep_screen_on", false)) }
     var fontSize by remember { mutableFloatStateOf(prefs.getFloat("font_size", 18f)) }
 
+    var notificationMessage by remember { mutableStateOf("") }
+    var showNotification by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showNotification) {
+        if (showNotification) {
+            delay(2000)
+            showNotification = false
+        }
+    }
+
     DisposableEffect(keepScreenOn) {
         val window = (context as? android.app.Activity)?.window
         if (keepScreenOn) {
@@ -104,159 +92,196 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
 
     var isBackTriggered by remember { mutableStateOf(false) }
     
-    Scaffold(
-        modifier = Modifier.pointerInput(Unit) {
-            detectHorizontalDragGestures { change, dragAmount ->
-                change.consume()
-                if (!isBackTriggered && dragAmount > 20) {
-                    isBackTriggered = true
-                    onBack()
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.pointerInput(Unit) {
+                detectHorizontalDragGestures { change, dragAmount ->
+                    change.consume()
+                    if (!isBackTriggered && dragAmount > 20) {
+                        isBackTriggered = true
+                        onBack()
+                    }
                 }
-            }
-        },
-        floatingActionButton = {
-            Box(
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .liquidGlass(cornerRadius = 20)
-                    .bouncyClick { shareLyrics(context, song, null) }
-                    .padding(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Share,
-                    contentDescription = "Share Song",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .liquidGlass(cornerRadius = 0)
-                    .statusBarsPadding()
-            ) {
-                Row(
+            },
+            floatingActionButton = {
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .liquidGlass(cornerRadius = 20)
+                        .bouncyClick { shareLyrics(context, song, null) }
+                        .padding(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share Song",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            topBar = {
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 8.dp)
-                        .height(IntrinsicSize.Min),
-                    verticalAlignment = Alignment.CenterVertically
+                        .liquidGlass(cornerRadius = 0)
+                        .statusBarsPadding()
                 ) {
-                    IconButton(
-                        onClick = onBack,
+                    Row(
                         modifier = Modifier
-                            .align(Alignment.Top)
-                            .bouncyClick(onClick = onBack)
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 8.dp)
+                            .height(IntrinsicSize.Min),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier
+                                .align(Alignment.Top)
+                                .bouncyClick(onClick = onBack)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        Text(
+                            text = "${song.id}. ${song.title}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
+                                .padding(vertical = 12.dp)
                         )
-                    }
-                    
-                    Text(
-                        text = "${song.id}. ${song.title}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp)
-                            .padding(vertical = 12.dp)
-                    )
 
-                    Row(modifier = Modifier.align(Alignment.Top)) {
-                        if (song.isCustom && onEdit != null) {
-                            IconButton(onClick = { onEdit(song) }) {
+                        Row(modifier = Modifier.align(Alignment.Top)) {
+                            if (song.isCustom && onEdit != null) {
+                                IconButton(onClick = { onEdit(song) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit Song",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { 
+                                if (fontSize > 12f) {
+                                    fontSize -= 2f
+                                    prefs.edit().putFloat("font_size", fontSize).apply()
+                                }
+                            }) {
+                                Text("A-", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = { 
+                                if (fontSize < 40f) {
+                                    fontSize += 2f
+                                    prefs.edit().putFloat("font_size", fontSize).apply()
+                                }
+                            }) {
+                                Text("A+", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = { 
+                                keepScreenOn = !keepScreenOn
+                                prefs.edit().putBoolean("keep_screen_on", keepScreenOn).apply()
+                                notificationMessage = if (keepScreenOn) "Screen wake enabled" else "Screen wake disabled"
+                                showNotification = true
+                            }) {
                                 Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Song",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    imageVector = if (keepScreenOn) Icons.Default.Lock else Icons.Default.LockOpen,
+                                    contentDescription = "Keep Screen On",
+                                    tint = if (keepScreenOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                        IconButton(onClick = { 
-                            if (fontSize > 12f) {
-                                fontSize -= 2f
-                                prefs.edit().putFloat("font_size", fontSize).apply()
+                    }
+                }
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            ) {
+                SelectionContainer {
+                    Column {
+                        song.lyrics.forEach { section ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(40.dp)
+                                        .padding(end = 8.dp),
+                                    contentAlignment = Alignment.TopEnd
+                                ) {
+                                    if (section.type != "chorus" && section.number != null) {
+                                        Text(
+                                            text = "${section.number}.",
+                                            fontSize = fontSize.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                
+                                Column(modifier = Modifier.weight(1f)) {
+                                    section.lines.forEach { line ->
+                                        Text(
+                                            text = line,
+                                            fontSize = fontSize.sp,
+                                            lineHeight = (fontSize * 1.5).sp,
+                                            fontStyle = if (section.type == "chorus") FontStyle.Italic else FontStyle.Normal,
+                                            fontWeight = if (section.type == "chorus") FontWeight.SemiBold else FontWeight.Normal,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
                             }
-                        }) {
-                            Text("A-", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        IconButton(onClick = { 
-                            if (fontSize < 40f) {
-                                fontSize += 2f
-                                prefs.edit().putFloat("font_size", fontSize).apply()
-                            }
-                        }) {
-                            Text("A+", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        IconButton(onClick = { 
-                            keepScreenOn = !keepScreenOn
-                            prefs.edit().putBoolean("keep_screen_on", keepScreenOn).apply()
-                        }) {
-                            Icon(
-                                imageVector = if (keepScreenOn) Icons.Default.Lock else Icons.Default.LockOpen,
-                                contentDescription = "Keep Screen On",
-                                tint = if (keepScreenOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
+                // Spacer at bottom to avoid navigation bar overlap if not handled by padding
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
-    ) { padding ->
-        Column(
+
+        // Custom Glassy Notification
+        AnimatedVisibility(
+            visible = showNotification,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .align(Alignment.TopCenter)
+                .padding(top = 100.dp)
+                .zIndex(100f)
         ) {
-            SelectionContainer {
-                Column {
-                    song.lyrics.forEach { section ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(40.dp)
-                                    .padding(end = 8.dp),
-                                contentAlignment = Alignment.TopEnd
-                            ) {
-                                if (section.type != "chorus" && section.number != null) {
-                                    Text(
-                                        text = "${section.number}.",
-                                        fontSize = fontSize.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            
-                            Column(modifier = Modifier.weight(1f)) {
-                                section.lines.forEach { line ->
-                                    Text(
-                                        text = line,
-                                        fontSize = fontSize.sp,
-                                        lineHeight = (fontSize * 1.5).sp,
-                                        fontStyle = if (section.type == "chorus") FontStyle.Italic else FontStyle.Normal,
-                                        fontWeight = if (section.type == "chorus") FontWeight.SemiBold else FontWeight.Normal,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-                        }
-                    }
+            Box(
+                modifier = Modifier
+                    .liquidGlass(cornerRadius = 24)
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (keepScreenOn) Icons.Default.Lock else Icons.Default.LockOpen,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = notificationMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
-            // Spacer at bottom to avoid navigation bar overlap if not handled by padding
-            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
