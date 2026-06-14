@@ -2,6 +2,7 @@ package com.heliactyl.bororwjabbilai.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,8 +22,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
@@ -165,22 +169,88 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                     )
                                 }
                             }
-                            IconButton(onClick = { 
-                                if (fontSize > 12f) {
-                                    fontSize -= 2f
-                                    prefs.edit().putFloat("font_size", fontSize).apply()
+
+                            var showTextSettings by remember { mutableStateOf(false) }
+                            
+                            Box {
+                                IconButton(onClick = { showTextSettings = true }) {
+                                    Icon(
+                                        imageVector = Icons.Default.TextFields,
+                                        contentDescription = "Text Settings",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
-                            }) {
-                                Text("A-", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            IconButton(onClick = { 
-                                if (fontSize < 40f) {
-                                    fontSize += 2f
-                                    prefs.edit().putFloat("font_size", fontSize).apply()
+                                
+                                if (showTextSettings) {
+                                    Popup(
+                                        onDismissRequest = { showTextSettings = false },
+                                        offset = IntOffset(0, 140), // Position nicely below the icon
+                                        alignment = Alignment.TopEnd,
+                                        properties = PopupProperties(focusable = true)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(220.dp)
+                                                .liquidGlass(cornerRadius = 24)
+                                                .padding(16.dp)
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    "Font Size",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.padding(bottom = 12.dp)
+                                                )
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    // Bouncy A- button
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(48.dp)
+                                                            .liquidGlass(cornerRadius = 14)
+                                                            .bouncyClick {
+                                                                if (fontSize > 12f) {
+                                                                    fontSize -= 2f
+                                                                    prefs.edit().putFloat("font_size", fontSize).apply()
+                                                                }
+                                                            },
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text("A-", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                                    }
+                                                    
+                                                    Text(
+                                                        text = "${fontSize.toInt()}",
+                                                        style = MaterialTheme.typography.bodyLarge,
+                                                        fontWeight = FontWeight.Black
+                                                    )
+                                                    
+                                                    // Bouncy A+ button
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(48.dp)
+                                                            .liquidGlass(cornerRadius = 14)
+                                                            .bouncyClick {
+                                                                if (fontSize < 40f) {
+                                                                    fontSize += 2f
+                                                                    prefs.edit().putFloat("font_size", fontSize).apply()
+                                                                }
+                                                            },
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text("A+", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
-                            }) {
-                                Text("A+", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+
                             IconButton(onClick = { 
                                 keepScreenOn = !keepScreenOn
                                 prefs.edit().putBoolean("keep_screen_on", keepScreenOn).apply()
