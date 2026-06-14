@@ -2,25 +2,33 @@
 
 ![Android](https://img.shields.io/badge/Android-3DDC84?style=flat&logo=android&logoColor=white) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) ![Stars](https://img.shields.io/github/stars/Badmaneers/bororwjabbilai)
 
-A modern Android application for viewing and singing along to Boro songs. Built with **Kotlin** and **Jetpack Compose**, focusing on a clean Material 3 interface and smooth user experience.
+A modern Android application for viewing and singing along to Boro songs. Built with **Kotlin** and **Jetpack Compose**, focusing on a premium **"Liquid Glass"** interface and smooth user experience.
 
 ## ✨ Features
 
+*   **Premium Design**:
+    -   **Liquid Glass UI**: Consistent glassmorphism effect across song cards, navigation bars, and search interfaces.
+    -   **Frosted Backgrounds**: Dynamic real-time blur for search and filter overlays.
+    -   **Haptic Physics**: Bouncy, organic animations for navigation indicators and button interactions.
+*   **OCR Lyrics Scanner (Beta)**:
+    -   **On-Device AI**: Powered by Google ML Kit for fast and private text recognition.
+    -   **Precision Capture**: Integrated CameraX interface with a visual alignment frame and automatic image cropping.
+    -   **Smart Parsing**: Intelligently detects and formats scanned text into song verses.
+*   **Custom Song Management**:
+    -   **Create & Edit**: Fully featured editor to create your own Boro songs with support for multiple verses and choruses.
+    -   **Local Storage**: All custom songs are saved securely on your device.
+    -   **Import/Export**: Share your custom songs with others using generated song codes.
 *   **Song Library**: Browse a comprehensive collection of Boro songs (loaded locally from JSON).
-*   **Smart Search**: Advanced search with weighted priority (Title > Lyrics) and category filtering.
+*   **Advanced Search**:
+    -   **Lyric Previews**: Smart snippets in search results that highlight matching lyrics with surrounding context.
+    -   **Weighted Results**: Prioritizes matching titles and song IDs.
 *   **Favorites & Recents**: Quickly access your favorite songs and recently viewed tracks.
-*   **Lyrics View**: 
-    -   **Rich Text**: HTML support for formatted lyrics.
-    -   **Font Controls**: Adjustable text size for better readability.
-    -   **Screen Awake**: Option to keep the screen on while singing.
-    -   **Gesture Navigation**: Swipe right to easily return to the song list.
-*   **Smooth Navigation**: 
-    -   **Animations**: Fluid slide and fade transitions between screens.
-    -   **Filtering**: Alphabetical filtering via swipe-up gesture.
-    -   **Tabs**: Seamless switching between Home, Favorites, and Recents.
-*   **High Performance**: Automatic support for high refresh rate displays (90Hz/120Hz).
-*   **Theme Aware**: Fully supports Dark and Light modes (system default or toggle within app).
-*   **Developer Info**: Integrated access to social links and contact information.
+*   **Intelligent Maintenance**:
+    -   **Daily Update Detection**: Smart update checks that run only once per day to optimize battery and data usage.
+    -   **High Refresh Rate**: Automatic support for 90Hz/120Hz displays for fluid scrolling.
+*   **Theme Aware**: 
+    -   **Dark Mode Native**: Now defaults to an elegant Dark Theme for better readability and eye comfort.
+    -   **High Contrast Light Mode**: Refined light mode with sharp highlights for glass visibility.
 
 ## 📸 Screenshots
 
@@ -37,15 +45,17 @@ A modern Android application for viewing and singing along to Boro songs. Built 
 *   **Language**: Kotlin
 *   **UI Framework**: Jetpack Compose (Material 3)
 *   **Architecture**: Modularized MVVM (Components, Screens, Repositories)
+*   **AI/OCR**: Google ML Kit (Text Recognition Latin)
+*   **Hardware**: CameraX (Camera core, lifecycle, and view)
 *   **Image Loading**: Coil (SVG support)
 *   **Data Parsing**: GSON
-*   **Design**: Material Design 3
-*   **Build System**: Gradle (Kotlin DSL)
+*   **Design**: Custom Liquid Glassmorphism System
+*   **Build System**: Gradle (Kotlin DSL) with JDK 21
 
 ## 📱 Prerequisites
 
 *   Android Studio Ladybug (or newer)
-*   JDK 17
+*   JDK 21
 *   Android Device/Emulator (Min SDK 23)
 
 ## 🚀 Building the Project
