@@ -10,6 +10,8 @@ jobs:
   build:
     name: Build & Release APK
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     permissions:
       contents: write
@@ -90,7 +92,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION_NAME }}
           files: app/build/outputs/apk/release/app-release.apk
