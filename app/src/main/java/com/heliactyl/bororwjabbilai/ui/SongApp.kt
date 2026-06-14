@@ -228,9 +228,14 @@ fun SongApp(
                                         .clip(RoundedCornerShape(24.dp))
                                         .background(
                                             if (isDark) Color.White.copy(alpha = 0.12f)
-                                            else Color.White.copy(alpha = 0.85f)
+                                            else Color.White.copy(alpha = 0.90f)
                                         )
-                                        .liquidGlass(cornerRadius = 24, color = Color.Transparent, blurRadius = 24f)
+                                        .liquidGlass(
+                                            cornerRadius = 24, 
+                                            color = Color.Transparent, 
+                                            blurRadius = 24f,
+                                            borderWidth = if (isDark) 1f else 1.8f
+                                        )
                                 ) {
                                     // Top specular highlight for elegance
                                     Box(
