@@ -130,8 +130,13 @@ fun SongApp(
         val currentDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
         
         if (lastCheckDate != currentDate) {
-            updateRelease = updateManager.checkForUpdate()
-            prefs.edit().putString("last_update_check_date", currentDate).apply()
+            try {
+                updateRelease = updateManager.checkForUpdate()
+                // If we reach here, the check was successful (even if updateRelease is null)
+                prefs.edit().putString("last_update_check_date", currentDate).apply()
+            } catch (e: Exception) {
+                // Ignore error (no internet etc), don't update lastCheckDate to retry on next startup
+            }
         }
     }
 

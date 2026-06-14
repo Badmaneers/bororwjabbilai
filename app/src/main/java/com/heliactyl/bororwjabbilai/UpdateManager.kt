@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import androidx.annotation.Keep
 import androidx.core.content.FileProvider
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
@@ -18,11 +19,13 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
+@Keep
 data class GitHubAsset(
     @SerializedName("name") val name: String,
     @SerializedName("browser_download_url") val downloadUrl: String
 )
 
+@Keep
 data class GitHubRelease(
     @SerializedName("tag_name") val tagName: String,
     @SerializedName("body") val body: String,
@@ -31,35 +34,31 @@ data class GitHubRelease(
 )
 
 class UpdateManager(private val context: Context) {
-    private val prefs = context.getSharedPreferences("updates", Context.MODE_PRIVATE)
-    private val currentVersion = BuildConfig.VERSION_NAME
+    private val currentVersion: String
+        get() = try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "0.0.0"
+        } catch (e: Exception) {
+            "0.0.0"
+        }
+
     private val repoUrl = "https://api.github.com/repos/Badmaneers/bororwjabbilai/releases/latest"
     private val cacheDir = context.cacheDir
     private val apkName = "update.apk"
 
-    suspend fun checkForUpdate(force: Boolean = false): GitHubRelease? {
-        val lastCheck = prefs.getLong("last_check", 0)
-        val now = System.currentTimeMillis()
-
-        if (!force && (now - lastCheck < TimeUnit.DAYS.toMillis(1))) {
-            return null
-        }
-
+    suspend fun checkForUpdate(): GitHubRelease? {
         return withContext(Dispatchers.IO) {
             try {
                 val url = URL(repoUrl)
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("User-Agent", "BoroRwjabBilai-App")
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
 
                 if (connection.responseCode == 200) {
                     val json = connection.inputStream.bufferedReader().use { it.readText() }
                     val release = Gson().fromJson(json, GitHubRelease::class.java)
                     
-                    prefs.edit().putLong("last_check", now).apply()
-
                     if (isNewerVersion(release.tagName)) {
                         release
                     } else {
@@ -69,7 +68,8 @@ class UpdateManager(private val context: Context) {
                     null
                 }
             } catch (e: Exception) {
-                null
+                e.printStackTrace()
+                throw e // Rethrow to distinguish network failure from "no update"
             }
         }
     }
