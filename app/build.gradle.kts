@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -69,6 +70,12 @@ android {
             versionNameSuffix = "-DEBUG"
         }
     }
+
+    baselineProfile {
+        filter {
+            include("com.heliactyl.bororwjabbilai.**")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -108,6 +115,8 @@ dependencies {
     implementation(libs.androidx.camera.extensions)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.accompanist.permissions)
+
+    baselineProfile(project(":baselineprofile"))
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
