@@ -12,11 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.heliactyl.bororwjabbilai.CustomSongRepository
 import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
 import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
@@ -29,6 +31,9 @@ fun CustomSongEditorScreen(
     onSave: (Song) -> Unit,
     onCancel: () -> Unit
 ) {
+    val context = LocalContext.current
+    val customSongRepository = remember { CustomSongRepository(context) }
+    
     var title by remember { mutableStateOf(initialSong?.title ?: "") }
     val lyrics = remember { 
         mutableStateListOf<LyricSection>().apply {
@@ -42,6 +47,9 @@ fun CustomSongEditorScreen(
     
     var showCamera by remember { mutableStateOf(false) }
     var showWipWarning by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var importCode by remember { mutableStateOf("") }
+    
     val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
     BackHandler(onBack = if (showCamera) { { showCamera = false } } else onCancel)
@@ -65,6 +73,45 @@ fun CustomSongEditorScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showWipWarning = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showImportDialog) {
+        AlertDialog(
+            onDismissRequest = { showImportDialog = false },
+            title = { Text("Import Song") },
+            text = {
+                Column {
+                    Text("Paste the song code shared by another user.")
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = importCode,
+                        onValueChange = { importCode = it },
+                        label = { Text("Song Code") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val imported = customSongRepository.importSongFromCode(importCode)
+                        if (imported != null) {
+                            title = imported.title
+                            lyrics.clear()
+                            lyrics.addAll(imported.lyrics)
+                            showImportDialog = false
+                            importCode = ""
+                        }
+                    },
+                    enabled = importCode.isNotBlank()
+                ) { Text("Import") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportDialog = false; importCode = "" }) {
                     Text("Cancel")
                 }
             }
@@ -96,6 +143,12 @@ fun CustomSongEditorScreen(
                             modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                         )
                         IconButton(
+                            onClick = { showImportDialog = true },
+                            modifier = Modifier.bouncyClick { }
+                        ) {
+                            Icon(Icons.Default.VerticalAlignBottom, contentDescription = "Import Code")
+                        }
+                        IconButton(
                             onClick = {
                                 showWipWarning = true
                             },
@@ -112,7 +165,6 @@ fun CustomSongEditorScreen(
                                             categoryChar = "C",
                                             title = title,
                                             lyrics = lyrics.toList(),
-                                            intentId = "custom",
                                             isFavorite = initialSong?.isFavorite ?: false,
                                             isCustom = true
                                         )
