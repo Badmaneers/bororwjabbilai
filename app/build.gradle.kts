@@ -40,12 +40,11 @@ android {
                 signingProps.load(FileInputStream(propFile))
             }
 
-            val keystoreFile = signingProps.getProperty("KEYSTORE_FILE") ?: System.getenv("KEYSTORE_FILE") ?: "keystore.jks"
+            val keystoreFile = signingProps.getProperty("KEYSTORE_FILE") ?: "keystore.jks"
             storeFile = file(keystoreFile)
             storePassword = signingProps.getProperty("KEYSTORE_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD")
             keyAlias = signingProps.getProperty("KEY_ALIAS") ?: System.getenv("KEY_ALIAS")
             
-            // Fallback to storePassword if KEY_PASSWORD is not set (common for PKCS12)
             val keyPass = signingProps.getProperty("KEY_PASSWORD") ?: System.getenv("KEY_PASSWORD")
             keyPassword = keyPass ?: storePassword
         }
@@ -59,11 +58,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = if (System.getenv("KEYSTORE_PASSWORD") != null) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             applicationIdSuffix = ".debug"
