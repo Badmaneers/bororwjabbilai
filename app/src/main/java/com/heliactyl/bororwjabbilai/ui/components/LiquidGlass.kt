@@ -55,8 +55,8 @@ fun Modifier.liquidGlass(
         // High-contrast elegant border for light mode
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.95f), // Stronger top specular
-                Color.Black.copy(alpha = 0.18f)  // More defined bottom edge
+                Color.White.copy(alpha = 1.0f),  // Fully solid top specular for maximum pop
+                Color.Black.copy(alpha = 0.25f)  // Much darker bottom edge for shadow depth
             )
         )
     }

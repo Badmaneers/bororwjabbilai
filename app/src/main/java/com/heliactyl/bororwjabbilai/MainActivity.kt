@@ -75,16 +75,17 @@ class MainActivity : ComponentActivity() {
             var themeMode by remember(systemDark) { 
                 val lastSystemDark = prefs.getBoolean("last_system_dark", systemDark)
                 val initialMode = if (lastSystemDark != systemDark) {
+                    // Update system tracking but keep user preference if it exists
+                    val currentPref = prefs.getInt("theme_mode", 2) // Default to Dark (2)
                     prefs.edit()
-                        .putInt("theme_mode", 0)
                         .putBoolean("last_system_dark", systemDark)
                         .apply()
-                    0
+                    currentPref
                 } else {
                     if (!prefs.contains("last_system_dark")) {
                         prefs.edit().putBoolean("last_system_dark", systemDark).apply()
                     }
-                    prefs.getInt("theme_mode", 0)
+                    prefs.getInt("theme_mode", 2) // Default to Dark (2)
                 }
                 mutableIntStateOf(initialMode)
             }
