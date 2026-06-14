@@ -36,6 +36,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -74,6 +75,7 @@ fun SongApp(
     onThemeCycle: (Offset) -> Unit
 ) {
     val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val customSongRepository = remember { com.heliactyl.bororwjabbilai.CustomSongRepository(context) }
     val updateManager = remember { com.heliactyl.bororwjabbilai.UpdateManager(context) }
 
@@ -1177,6 +1179,7 @@ fun SongApp(
                             snippet = snippet,
                             onFavoriteClick = { toggleFavorite(song) },
                             onClick = {
+                                keyboardController?.hide()
                                 selectedSong = song
                                 recentsRepository.addRecent(song.id)
                                 recentIds = recentsRepository.getRecentIds()
