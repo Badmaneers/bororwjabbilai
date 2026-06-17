@@ -40,13 +40,16 @@ android {
                 signingProps.load(FileInputStream(propFile))
             }
 
-            val keystoreFile = signingProps.getProperty("KEYSTORE_FILE") ?: "keystore.jks"
-            storeFile = file(keystoreFile)
-            storePassword = signingProps.getProperty("KEYSTORE_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = signingProps.getProperty("KEY_ALIAS") ?: System.getenv("KEY_ALIAS")
-            
-            val keyPass = signingProps.getProperty("KEY_PASSWORD") ?: System.getenv("KEY_PASSWORD")
-            keyPassword = keyPass ?: storePassword
+            val keystorePath = signingProps.getProperty("KEYSTORE_FILE") ?: "keystore.jks"
+            val keystoreFile = file(keystorePath)
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = signingProps.getProperty("KEYSTORE_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = signingProps.getProperty("KEY_ALIAS") ?: System.getenv("KEY_ALIAS")
+
+                val keyPass = signingProps.getProperty("KEY_PASSWORD") ?: System.getenv("KEY_PASSWORD")
+                keyPassword = keyPass ?: storePassword
+            }
         }
     }
 
@@ -58,7 +61,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            val releaseConfig = signingConfigs.getByName("release")
+            if (releaseConfig.storeFile?.exists() == true) {
+                signingConfig = releaseConfig
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
