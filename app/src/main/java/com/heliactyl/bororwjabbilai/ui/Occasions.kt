@@ -1,5 +1,8 @@
 package com.heliactyl.bororwjabbilai.ui
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class Occasion(val name: String, val range: ClosedRange<Int>)
 
 val occasionFilters = listOf(
@@ -60,5 +63,5 @@ val occasionFilters = listOf(
     Occasion("Hadort", 636..638),
     Occasion("Bidai", 639..644),
     Occasion("Chorus", 645..716),
-    Occasion("Others", 717..Int.MAX_VALUE)
+    Occasion("Others", 717..Int.MAX_VALUE),
 )

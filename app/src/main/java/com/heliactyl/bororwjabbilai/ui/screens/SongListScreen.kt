@@ -62,23 +62,23 @@ fun SongListScreen(
         } else if (query.isBlank()) {
             songs
         } else {
-            val q = query.trim()
-            songs.filter { song ->
-                song.title.contains(q, ignoreCase = true) ||
-                song.id.toString().contains(q) ||
+            val q = query.trim().lowercase()
+            songs.asSequence().filter { song ->
+                song.searchTitleLower.contains(q) ||
+                song.searchIdString.contains(q) ||
                 song.searchLyricsText.contains(q, ignoreCase = true) ||
                 song.categoryChar.equals(q, ignoreCase = true)
             }.sortedWith(
                 compareByDescending<Song> {
-                    it.title.startsWith(q, ignoreCase = true)
+                    it.searchTitleLower.startsWith(q)
                 }.thenByDescending {
-                    it.title.contains(q, ignoreCase = true)
+                    it.searchTitleLower.contains(q)
                 }.thenByDescending {
                     it.categoryChar.equals(q, ignoreCase = true)
                 }.thenByDescending {
                     it.searchLyricsText.contains(q, ignoreCase = true)
                 }
-            )
+            ).toList()
         }
     }
 

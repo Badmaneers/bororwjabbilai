@@ -906,11 +906,11 @@ fun SongApp(
                 val filteredSongsWithSnippets = remember(query, allSongs) {
                     if (query.isBlank()) allSongs.map { it to null }
                     else {
-                        val q = query.trim()
+                        val q = query.trim().lowercase()
                         allSongs.mapNotNull { song ->
                             val allLyrics = song.searchLyricsText
-                            val titleMatch = song.title.contains(q, ignoreCase = true)
-                            val idMatch = song.id.toString().contains(q)
+                            val titleMatch = song.searchTitleLower.contains(q)
+                            val idMatch = song.searchIdString.contains(q)
                             val lyricsMatch = allLyrics.contains(q, ignoreCase = true)
 
                             if (titleMatch || idMatch || lyricsMatch) {
