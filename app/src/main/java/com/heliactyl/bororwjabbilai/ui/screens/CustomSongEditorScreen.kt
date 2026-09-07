@@ -42,6 +42,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -95,8 +96,12 @@ fun CustomSongEditorScreen(
     
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
-    var predictiveProgress by remember { mutableFloatStateOf(0f) }
+    var predictiveProgress by remember(initialSong) { mutableFloatStateOf(0f) }
     var swipeEdge by remember { mutableIntStateOf(BackEventCompat.EDGE_LEFT) }
+
+    LaunchedEffect(initialSong) {
+        predictiveProgress = 0f
+    }
 
     if (showCamera) {
         BackHandler(onBack = { showCamera = false })
@@ -107,8 +112,11 @@ fun CustomSongEditorScreen(
                     predictiveProgress = backEvent.progress
                     swipeEdge = backEvent.swipeEdge
                 }
+                predictiveProgress = 0f
                 onCancel()
             } catch (_: CancellationException) {
+                predictiveProgress = 0f
+            } finally {
                 predictiveProgress = 0f
             }
         }
@@ -188,15 +196,16 @@ fun CustomSongEditorScreen(
     )
 
     val densityPx = LocalDensity.current.density
-    val unsnapScale = 1f - (animatedProgress * 0.12f)
-    val unsnapCornerRadius = (animatedProgress * 28).dp
+    val safeProgress = animatedProgress.coerceIn(0f, 1f)
+    val unsnapScale = (1f - (safeProgress * 0.12f)).coerceIn(0.1f, 1f)
+    val unsnapCornerRadius = (safeProgress * 28).dp.coerceAtLeast(0.dp)
     val unsnapTranslationX = if (swipeEdge == BackEventCompat.EDGE_RIGHT) {
-        -animatedProgress * 60f * densityPx
+        -safeProgress * 60f * densityPx
     } else {
-        animatedProgress * 60f * densityPx
+        safeProgress * 60f * densityPx
     }
-    val unsnapTranslationY = animatedProgress * 20f * densityPx
-    val unsnapAlpha = 1f - (animatedProgress * 0.15f)
+    val unsnapTranslationY = safeProgress * 20f * densityPx
+    val unsnapAlpha = (1f - (safeProgress * 0.15f)).coerceIn(0f, 1f)
 
     Box(
         modifier = Modifier
@@ -207,7 +216,7 @@ fun CustomSongEditorScreen(
                 translationX = unsnapTranslationX
                 translationY = unsnapTranslationY
                 alpha = unsnapAlpha
-                shadowElevation = animatedProgress * 16f * densityPx
+                shadowElevation = safeProgress * 16f * densityPx
                 shape = RoundedCornerShape(unsnapCornerRadius)
                 clip = true
             }

@@ -116,9 +116,13 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
     var notificationMessage by remember { mutableStateOf("") }
     var showNotification by remember { mutableStateOf(false) }
 
-    var predictiveProgress by remember { mutableFloatStateOf(0f) }
+    var predictiveProgress by remember(song) { mutableFloatStateOf(0f) }
     var swipeEdge by remember { mutableIntStateOf(BackEventCompat.EDGE_LEFT) }
     var isDraggingGesture by remember { mutableStateOf(false) }
+
+    LaunchedEffect(song) {
+        predictiveProgress = 0f
+    }
 
     PredictiveBackHandler { progress: Flow<BackEventCompat> ->
         try {
@@ -126,8 +130,11 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                 predictiveProgress = backEvent.progress
                 swipeEdge = backEvent.swipeEdge
             }
+            predictiveProgress = 0f
             onBack()
         } catch (_: CancellationException) {
+            predictiveProgress = 0f
+        } finally {
             predictiveProgress = 0f
         }
     }
@@ -161,15 +168,16 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
     )
 
     val densityPx = density.density
-    val unsnapScale = 1f - (animatedProgress * 0.12f)
-    val unsnapCornerRadius = (animatedProgress * 28).dp
+    val safeProgress = animatedProgress.coerceIn(0f, 1f)
+    val unsnapScale = (1f - (safeProgress * 0.12f)).coerceIn(0.1f, 1f)
+    val unsnapCornerRadius = (safeProgress * 28).dp.coerceAtLeast(0.dp)
     val unsnapTranslationX = if (swipeEdge == BackEventCompat.EDGE_RIGHT) {
-        -animatedProgress * 60f * densityPx
+        -safeProgress * 60f * densityPx
     } else {
-        animatedProgress * 60f * densityPx
+        safeProgress * 60f * densityPx
     }
-    val unsnapTranslationY = animatedProgress * 20f * densityPx
-    val unsnapAlpha = 1f - (animatedProgress * 0.15f)
+    val unsnapTranslationY = safeProgress * 20f * densityPx
+    val unsnapAlpha = (1f - (safeProgress * 0.15f)).coerceIn(0f, 1f)
 
     Box(
         modifier = Modifier
@@ -180,7 +188,7 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                 translationX = unsnapTranslationX
                 translationY = unsnapTranslationY
                 alpha = unsnapAlpha
-                shadowElevation = animatedProgress * 16f * densityPx
+                shadowElevation = safeProgress * 16f * densityPx
                 shape = RoundedCornerShape(unsnapCornerRadius)
                 clip = true
             }
@@ -193,11 +201,11 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                         swipeEdge = BackEventCompat.EDGE_LEFT
                     },
                     onDragEnd = {
+                        val shouldBack = predictiveProgress > 0.35f
                         isDraggingGesture = false
-                        if (predictiveProgress > 0.35f) {
+                        predictiveProgress = 0f
+                        if (shouldBack) {
                             onBack()
-                        } else {
-                            predictiveProgress = 0f
                         }
                     },
                     onDragCancel = {
