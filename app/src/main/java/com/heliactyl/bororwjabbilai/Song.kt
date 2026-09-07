@@ -11,7 +11,11 @@ data class Song(
     @SerializedName("lyrics") val lyrics: List<LyricSection> = emptyList(),
     @SerializedName("isFavorite") var isFavorite: Boolean,
     @SerializedName("isCustom") val isCustom: Boolean = false,
-)
+) {
+    val searchLyricsText: String by lazy {
+        lyrics.asSequence().flatMap { it.lines }.joinToString(" ")
+    }
+}
 
 @Keep
 data class LyricSection(

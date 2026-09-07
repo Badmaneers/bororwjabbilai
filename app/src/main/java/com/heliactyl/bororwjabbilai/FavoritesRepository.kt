@@ -10,6 +10,9 @@ class FavoritesRepository(context: Context) {
     @Suppress("PrivatePropertyName")
     private val KEY_FAVORITES = "favorite_song_ids"
 
+    @Volatile
+    private var cachedIds: List<Int>? = null
+
     fun toggleFavorite(songId: Int) {
         val currentFavorites = getFavoriteIds().toMutableList()
         if (currentFavorites.contains(songId)) {
@@ -25,16 +28,23 @@ class FavoritesRepository(context: Context) {
     }
 
     fun getFavoriteIds(): List<Int> {
+        cachedIds?.let { return it }
         val string = prefs.getString(KEY_FAVORITES, "") ?: ""
-        if (string.isBlank()) return emptyList()
+        if (string.isBlank()) {
+            cachedIds = emptyList()
+            return emptyList()
+        }
         return try {
-            string.split(",").map { it.toInt() }
-        } catch (_: NumberFormatException) {
+            val ids = string.split(",").mapNotNull { it.toIntOrNull() }
+            cachedIds = ids
+            ids
+        } catch (_: Exception) {
             emptyList()
         }
     }
 
     private fun saveFavorites(ids: List<Int>) {
+        cachedIds = ids
         prefs.edit { putString(KEY_FAVORITES, ids.joinToString(",")) }
     }
 }

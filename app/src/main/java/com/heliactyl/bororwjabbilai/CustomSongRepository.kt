@@ -11,12 +11,21 @@ class CustomSongRepository(context: Context) {
     private val fileName = "custom_songs.json"
     private val file = File(context.filesDir, fileName)
 
+    @Volatile
+    private var cachedCustomSongs: List<Song>? = null
+
     fun getCustomSongs(): List<Song> {
-        if (!file.exists()) return emptyList()
+        cachedCustomSongs?.let { return it }
+        if (!file.exists()) {
+            cachedCustomSongs = emptyList()
+            return emptyList()
+        }
         return try {
             val jsonString = file.readText()
             val listType = object : TypeToken<List<Song>>() {}.type
-            gson.fromJson(jsonString, listType) ?: emptyList()
+            val songs: List<Song> = gson.fromJson(jsonString, listType) ?: emptyList()
+            cachedCustomSongs = songs
+            songs
         } catch (_: Exception) {
             emptyList()
         }
@@ -30,11 +39,13 @@ class CustomSongRepository(context: Context) {
         } else {
             currentSongs.add(song)
         }
+        cachedCustomSongs = currentSongs
         file.writeText(gson.toJson(currentSongs))
     }
 
     fun deleteSong(id: Int) {
         val currentSongs = getCustomSongs().filter { it.id != id }
+        cachedCustomSongs = currentSongs
         file.writeText(gson.toJson(currentSongs))
     }
 
@@ -54,7 +65,7 @@ class CustomSongRepository(context: Context) {
             val decodedBytes = Base64.decode(code, Base64.DEFAULT)
             val json = String(decodedBytes)
             gson.fromJson(json, Song::class.java).copy(
-                id = generateNewId(), // Assign a new local ID
+                id = generateNewId(),
                 isCustom = true,
             )
         } catch (_: Exception) {

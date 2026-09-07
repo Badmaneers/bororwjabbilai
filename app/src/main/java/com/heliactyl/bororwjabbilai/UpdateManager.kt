@@ -30,6 +30,8 @@ data class GitHubRelease(
 )
 
 class UpdateManager(private val context: Context) {
+    private val gson = Gson()
+
     private val currentVersion: String
         get() = try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "0.0.0"
@@ -53,7 +55,7 @@ class UpdateManager(private val context: Context) {
 
                 if (connection.responseCode == 200) {
                     val json = connection.inputStream.bufferedReader().use { it.readText() }
-                    val release = Gson().fromJson(json, GitHubRelease::class.java)
+                    val release = gson.fromJson(json, GitHubRelease::class.java)
                     
                     if (isNewerVersion(release.tagName)) {
                         release

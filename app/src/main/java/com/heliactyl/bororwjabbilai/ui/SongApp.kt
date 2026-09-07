@@ -10,6 +10,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -900,12 +901,14 @@ fun SongApp(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
+                val favoriteSet = remember(favoriteIds) { favoriteIds.toSet() }
+
                 val filteredSongsWithSnippets = remember(query, allSongs) {
                     if (query.isBlank()) allSongs.map { it to null }
                     else {
                         val q = query.trim()
                         allSongs.mapNotNull { song ->
-                            val allLyrics = song.lyrics.flatMap { it.lines }.joinToString(" ")
+                            val allLyrics = song.searchLyricsText
                             val titleMatch = song.title.contains(q, ignoreCase = true)
                             val idMatch = song.id.toString().contains(q)
                             val lyricsMatch = allLyrics.contains(q, ignoreCase = true)
@@ -921,7 +924,6 @@ fun SongApp(
                                     val suffix = if (end < allLyrics.length) "..." else ""
                                     "$prefix$rawSnippet$suffix"
                                 } else if (song.lyrics.isNotEmpty() && song.lyrics[0].lines.isNotEmpty()) {
-                                    // Fallback to first line if title/id matched but lyrics didn't
                                     song.lyrics[0].lines[0]
                                 } else null
                                 
@@ -934,11 +936,10 @@ fun SongApp(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filteredSongsWithSnippets.size) { index ->
-                        val (song, snippet) = filteredSongsWithSnippets[index]
+                    items(filteredSongsWithSnippets, key = { (song, _) -> song.id }) { (song, snippet) ->
                         SongItem(
                             song = song,
-                            isFavorite = favoriteIds.contains(song.id),
+                            isFavorite = song.id in favoriteSet,
                             snippet = snippet,
                             onFavoriteClick = { toggleFavorite(song) },
                             onClick = {
