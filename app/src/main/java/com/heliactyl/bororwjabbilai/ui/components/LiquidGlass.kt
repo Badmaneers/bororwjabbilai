@@ -9,7 +9,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -25,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -103,7 +106,7 @@ fun Modifier.liquidGlass(
 
 @Composable
 fun Modifier.bouncyClick(
-    onClick: () -> Unit,
+    onClick: (() -> Unit)? = null,
 ): Modifier {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -119,10 +122,25 @@ fun Modifier.bouncyClick(
     return this.then(
         Modifier
             .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick
+                    )
+                } else {
+                    Modifier.pointerInput(interactionSource) {
+                        detectTapGestures(
+                            onPress = { offset ->
+                                val press = PressInteraction.Press(offset)
+                                interactionSource.emit(press)
+                                tryAwaitRelease()
+                                interactionSource.emit(PressInteraction.Release(press))
+                            }
+                        )
+                    }
+                }
             )
     )
 }

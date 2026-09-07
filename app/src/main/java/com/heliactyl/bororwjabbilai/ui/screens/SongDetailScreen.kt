@@ -392,8 +392,7 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                         song.lyrics.forEach { section ->
                             LyricSectionItem(
                                 section = section,
-                                fontSize = fontSize,
-                                onShareLine = { line -> shareLyrics(context, song, line) }
+                                fontSize = fontSize
                             )
                             Spacer(modifier = Modifier.height(24.dp))
                         }
@@ -443,8 +442,7 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
 @Composable
 fun LyricSectionItem(
     section: LyricSection,
-    fontSize: Float,
-    onShareLine: (String) -> Unit
+    fontSize: Float
 ) {
     val isChorus = section.type == "chorus"
     
@@ -468,7 +466,7 @@ fun LyricSectionItem(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .bouncyClick { onShareLine(line) }
+                    .bouncyClick()
                     .padding(vertical = 3.dp)
             ) {
                 Row {
@@ -487,7 +485,7 @@ fun LyricSectionItem(
                             fontStyle = if (isChorus) FontStyle.Italic else FontStyle.Normal,
                             lineHeight = (fontSize * 1.45f).sp
                         ),
-                        color = if (isChorus) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
