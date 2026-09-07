@@ -1,5 +1,8 @@
 package com.heliactyl.bororwjabbilai.ui.components
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -23,7 +26,6 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.Dp
 
 @Composable
 fun Modifier.liquidGlass(
@@ -48,7 +50,7 @@ fun Modifier.liquidGlass(
         Brush.verticalGradient(
             colors = listOf(
                 Color.White.copy(alpha = 0.22f),
-                Color.White.copy(alpha = 0.08f)
+                Color.White.copy(alpha = 0.08f),
             )
         )
     } else {
@@ -56,7 +58,7 @@ fun Modifier.liquidGlass(
         Brush.verticalGradient(
             colors = listOf(
                 Color.White.copy(alpha = 1.0f),  // Fully solid top specular for maximum pop
-                Color.Black.copy(alpha = 0.25f)  // Much darker bottom edge for shadow depth
+                Color.Black.copy(alpha = 0.25f), // Much darker bottom edge for shadow depth
             )
         )
     }
@@ -64,11 +66,11 @@ fun Modifier.liquidGlass(
     return this.then(
         Modifier
             .graphicsLayer {
-                if (blurRadius > 0f && (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S)) {
-                    renderEffect = android.graphics.RenderEffect.createBlurEffect(
+                if ((blurRadius > 0f) && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)) {
+                    renderEffect = RenderEffect.createBlurEffect(
                         blurRadius,
                         blurRadius,
-                        android.graphics.Shader.TileMode.MIRROR
+                        Shader.TileMode.MIRROR
                     ).asComposeRenderEffect()
                 }
                 shape = RoundedCornerShape(cornerRadius.dp)
@@ -101,7 +103,7 @@ fun Modifier.liquidGlass(
 
 @Composable
 fun Modifier.bouncyClick(
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ): Modifier {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -130,7 +132,7 @@ fun LiquidGlassCard(
     modifier: Modifier = Modifier,
     cornerRadius: Int = 24,
     onClick: () -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Box(
         modifier = modifier

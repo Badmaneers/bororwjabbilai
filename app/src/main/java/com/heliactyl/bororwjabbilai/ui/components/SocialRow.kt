@@ -33,7 +33,7 @@ fun SocialRow(
     iconModel: Any? = null,
     iconVector: ImageVector? = null,
     tint: Color? = null, 
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val context = LocalContext.current
 

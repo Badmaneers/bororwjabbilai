@@ -15,13 +15,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.heliactyl.bororwjabbilai.Song
-import com.heliactyl.bororwjabbilai.ui.components.LiquidGlassCard
-import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
 
 @Composable
 fun SongItem(
@@ -29,7 +26,7 @@ fun SongItem(
     isFavorite: Boolean,
     snippet: String? = null,
     onFavoriteClick: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     LiquidGlassCard(
         onClick = onClick,

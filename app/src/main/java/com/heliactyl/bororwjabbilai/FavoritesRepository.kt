@@ -2,9 +2,12 @@ package com.heliactyl.bororwjabbilai
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 class FavoritesRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("favorites_prefs", Context.MODE_PRIVATE)
+    
+    @Suppress("PrivatePropertyName")
     private val KEY_FAVORITES = "favorite_song_ids"
 
     fun toggleFavorite(songId: Int) {
@@ -26,12 +29,12 @@ class FavoritesRepository(context: Context) {
         if (string.isBlank()) return emptyList()
         return try {
             string.split(",").map { it.toInt() }
-        } catch (e: NumberFormatException) {
+        } catch (_: NumberFormatException) {
             emptyList()
         }
     }
 
     private fun saveFavorites(ids: List<Int>) {
-        prefs.edit().putString(KEY_FAVORITES, ids.joinToString(",")).apply()
+        prefs.edit { putString(KEY_FAVORITES, ids.joinToString(",")) }
     }
 }

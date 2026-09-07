@@ -1,25 +1,65 @@
 package com.heliactyl.bororwjabbilai.ui.screens
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.view.WindowManager
+import androidx.activity.BackEventCompat
+import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.foundation.text.selection.SelectionContainer
-import android.content.Intent
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -28,24 +68,28 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
+import androidx.core.content.edit
+import com.heliactyl.bororwjabbilai.CustomSongRepository
 import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
-import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
 import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
+import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 
-fun shareLyrics(context: android.content.Context, song: Song, textToShare: String? = null) {
+fun shareLyrics(context: Context, song: Song, textToShare: String? = null) {
     val shareText = if (textToShare != null) {
         "\"$textToShare\"\n\n— From: ${song.title}"
     } else {
         if (song.isCustom) {
             // Sharing custom song code
-            val repo = com.heliactyl.bororwjabbilai.CustomSongRepository(context)
+            val repo = CustomSongRepository(context)
             val code = repo.exportSongAsCode(song)
             "Custom Song: ${song.title}\n\nImport this song into Boro Rwjab Bilai app using this code:\n\n$code"
         } else {
             val fullLyrics = song.lyrics.joinToString("\n\n") { section ->
-                val numberPrefix = if (section.type != "chorus" && section.number != null) "${section.number}. " else ""
+                val numberPrefix = if ((section.type != "chorus") && (section.number != null)) "${section.number}. " else ""
                 val linesText = section.lines.joinToString("\n")
                 "$numberPrefix$linesText"
             }
@@ -60,18 +104,33 @@ fun shareLyrics(context: android.content.Context, song: Song, textToShare: Strin
     context.startActivity(Intent.createChooser(intent, "Share Song"))
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? = null) {
-    BackHandler(onBack = onBack)
     val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
+    val density = LocalDensity.current
+    val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
     
     var keepScreenOn by remember { mutableStateOf(prefs.getBoolean("keep_screen_on", false)) }
     var fontSize by remember { mutableFloatStateOf(prefs.getFloat("font_size", 18f)) }
 
     var notificationMessage by remember { mutableStateOf("") }
     var showNotification by remember { mutableStateOf(false) }
+
+    var predictiveProgress by remember { mutableFloatStateOf(0f) }
+    var swipeEdge by remember { mutableIntStateOf(BackEventCompat.EDGE_LEFT) }
+    var isDraggingGesture by remember { mutableStateOf(false) }
+
+    PredictiveBackHandler { progress: Flow<BackEventCompat> ->
+        try {
+            progress.collect { backEvent ->
+                predictiveProgress = backEvent.progress
+                swipeEdge = backEvent.swipeEdge
+            }
+            onBack()
+        } catch (_: CancellationException) {
+            predictiveProgress = 0f
+        }
+    }
 
     LaunchedEffect(showNotification) {
         if (showNotification) {
@@ -81,31 +140,78 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
     }
 
     DisposableEffect(keepScreenOn) {
-        val window = (context as? android.app.Activity)?.window
+        val window = (context as? Activity)?.window
         if (keepScreenOn) {
-            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
-            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         onDispose {
-            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 
-    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    val animatedProgress by animateFloatAsState(
+        targetValue = predictiveProgress,
+        animationSpec = spring(
+            stiffness = Spring.StiffnessMediumLow,
+            dampingRatio = Spring.DampingRatioLowBouncy,
+        ),
+        label = "unsnapProgress"
+    )
 
-    var isBackTriggered by remember { mutableStateOf(false) }
-    
-    Box(modifier = Modifier.fillMaxSize()) {
+    val densityPx = density.density
+    val unsnapScale = 1f - (animatedProgress * 0.12f)
+    val unsnapCornerRadius = (animatedProgress * 28).dp
+    val unsnapTranslationX = if (swipeEdge == BackEventCompat.EDGE_RIGHT) {
+        -animatedProgress * 60f * densityPx
+    } else {
+        animatedProgress * 60f * densityPx
+    }
+    val unsnapTranslationY = animatedProgress * 20f * densityPx
+    val unsnapAlpha = 1f - (animatedProgress * 0.15f)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = unsnapScale
+                scaleY = unsnapScale
+                translationX = unsnapTranslationX
+                translationY = unsnapTranslationY
+                alpha = unsnapAlpha
+                shadowElevation = animatedProgress * 16f * densityPx
+                shape = RoundedCornerShape(unsnapCornerRadius)
+                clip = true
+            }
+    ) {
         Scaffold(
             modifier = Modifier.pointerInput(Unit) {
-                detectHorizontalDragGestures { change, dragAmount ->
-                    change.consume()
-                    if (!isBackTriggered && dragAmount > 20) {
-                        isBackTriggered = true
-                        onBack()
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        isDraggingGesture = true
+                        swipeEdge = BackEventCompat.EDGE_LEFT
+                    },
+                    onDragEnd = {
+                        isDraggingGesture = false
+                        if (predictiveProgress > 0.35f) {
+                            onBack()
+                        } else {
+                            predictiveProgress = 0f
+                        }
+                    },
+                    onDragCancel = {
+                        isDraggingGesture = false
+                        predictiveProgress = 0f
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        if (isDraggingGesture) {
+                            val newProgress = (predictiveProgress + (dragAmount / 600f)).coerceIn(0f, 1f)
+                            predictiveProgress = newProgress
+                        }
                     }
-                }
+                )
             },
             floatingActionButton = {
                 Box(
@@ -143,7 +249,7 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                 .bouncyClick(onClick = onBack)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -184,7 +290,7 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                 if (showTextSettings) {
                                     Popup(
                                         onDismissRequest = { showTextSettings = false },
-                                        offset = IntOffset(0, 140), // Position nicely below the icon
+                                        offset = IntOffset(0, 140),
                                         alignment = Alignment.TopEnd,
                                         properties = PopupProperties(focusable = true)
                                     ) {
@@ -215,7 +321,7 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                                             .bouncyClick {
                                                                 if (fontSize > 12f) {
                                                                     fontSize -= 2f
-                                                                    prefs.edit().putFloat("font_size", fontSize).apply()
+                                                                    prefs.edit { putFloat("font_size", fontSize) }
                                                                 }
                                                             },
                                                         contentAlignment = Alignment.Center
@@ -224,7 +330,7 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                                     }
                                                     
                                                     Text(
-                                                        text = "${fontSize.toInt()}",
+                                                        text = fontSize.toInt().toString(),
                                                         style = MaterialTheme.typography.bodyLarge,
                                                         fontWeight = FontWeight.Black
                                                     )
@@ -237,7 +343,7 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                                             .bouncyClick {
                                                                 if (fontSize < 40f) {
                                                                     fontSize += 2f
-                                                                    prefs.edit().putFloat("font_size", fontSize).apply()
+                                                                    prefs.edit { putFloat("font_size", fontSize) }
                                                                 }
                                                             },
                                                         contentAlignment = Alignment.Center
@@ -253,13 +359,13 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
 
                             IconButton(onClick = { 
                                 keepScreenOn = !keepScreenOn
-                                prefs.edit().putBoolean("keep_screen_on", keepScreenOn).apply()
+                                prefs.edit { putBoolean("keep_screen_on", keepScreenOn) }
                                 notificationMessage = if (keepScreenOn) "Screen awake enabled" else "Screen awake disabled"
                                 showNotification = true
                             }) {
                                 Icon(
-                                    imageVector = if (keepScreenOn) Icons.Default.Lock else Icons.Default.LockOpen,
-                                    contentDescription = "Keep Screen On",
+                                    imageVector = Icons.Default.Lightbulb,
+                                    contentDescription = "Keep Screen Awake",
                                     tint = if (keepScreenOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -267,88 +373,121 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                     }
                 }
             }
-        ) { padding ->
-            Column(
+        ) { paddingValues ->
+            val scrollState = rememberScrollState()
+            
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
+                    .padding(paddingValues)
             ) {
                 SelectionContainer {
-                    Column {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .padding(24.dp)
+                            .padding(bottom = 80.dp)
+                    ) {
                         song.lyrics.forEach { section ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(40.dp)
-                                        .padding(end = 8.dp),
-                                    contentAlignment = Alignment.TopEnd
-                                ) {
-                                    if (section.type != "chorus" && section.number != null) {
-                                        Text(
-                                            text = "${section.number}.",
-                                            fontSize = fontSize.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                                
-                                Column(modifier = Modifier.weight(1f)) {
-                                    section.lines.forEach { line ->
-                                        Text(
-                                            text = line,
-                                            fontSize = fontSize.sp,
-                                            lineHeight = (fontSize * 1.5).sp,
-                                            fontStyle = if (section.type == "chorus") FontStyle.Italic else FontStyle.Normal,
-                                            fontWeight = if (section.type == "chorus") FontWeight.SemiBold else FontWeight.Normal,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
-                                }
-                            }
+                            LyricSectionItem(
+                                section = section,
+                                fontSize = fontSize,
+                                onShareLine = { line -> shareLyrics(context, song, line) }
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
                         }
                     }
                 }
-                // Spacer at bottom to avoid navigation bar overlap if not handled by padding
-                Spacer(modifier = Modifier.height(80.dp))
+
+                // Custom Animated Toast Notification
+                AnimatedVisibility(
+                    visible = showNotification,
+                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                        .zIndex(10f)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.Black.copy(alpha = 0.8f),
+                        contentColor = Color.White,
+                        shadowElevation = 8.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lightbulb,
+                                contentDescription = null,
+                                tint = if (keepScreenOn) Color.Yellow else Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = notificationMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+}
 
-        // Custom Glassy Notification
-        AnimatedVisibility(
-            visible = showNotification,
-            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 100.dp)
-                .zIndex(100f)
-        ) {
+@Composable
+fun LyricSectionItem(
+    section: LyricSection,
+    fontSize: Float,
+    onShareLine: (String) -> Unit
+) {
+    val isChorus = section.type == "chorus"
+    
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (isChorus) {
+            Text(
+                text = "Chorus",
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = (fontSize - 2).sp),
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                fontStyle = FontStyle.Italic,
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+        }
+
+        section.lines.forEachIndexed { index, line ->
+            val numberPrefix = if (!isChorus && index == 0 && section.number != null) "${section.number}. " else ""
+            
             Box(
                 modifier = Modifier
-                    .liquidGlass(cornerRadius = 24)
-                    .padding(horizontal = 24.dp, vertical = 12.dp)
+                    .fillMaxWidth()
+                    .bouncyClick { onShareLine(line) }
+                    .padding(vertical = 3.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (keepScreenOn) Icons.Default.Lock else Icons.Default.LockOpen,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
+                Row {
+                    if (numberPrefix.isNotEmpty()) {
+                        Text(
+                            text = numberPrefix,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     Text(
-                        text = notificationMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = line,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = fontSize.sp,
+                            fontStyle = if (isChorus) FontStyle.Italic else FontStyle.Normal,
+                            lineHeight = (fontSize * 1.45f).sp
+                        ),
+                        color = if (isChorus) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface
                     )
                 }
             }

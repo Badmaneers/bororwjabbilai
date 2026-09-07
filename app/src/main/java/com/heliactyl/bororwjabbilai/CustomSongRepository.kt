@@ -6,7 +6,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
 
-class CustomSongRepository(private val context: Context) {
+class CustomSongRepository(context: Context) {
     private val gson = Gson()
     private val fileName = "custom_songs.json"
     private val file = File(context.filesDir, fileName)
@@ -17,7 +17,7 @@ class CustomSongRepository(private val context: Context) {
             val jsonString = file.readText()
             val listType = object : TypeToken<List<Song>>() {}.type
             gson.fromJson(jsonString, listType) ?: emptyList()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -55,9 +55,9 @@ class CustomSongRepository(private val context: Context) {
             val json = String(decodedBytes)
             gson.fromJson(json, Song::class.java).copy(
                 id = generateNewId(), // Assign a new local ID
-                isCustom = true
+                isCustom = true,
             )
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }

@@ -1,18 +1,59 @@
 package com.heliactyl.bororwjabbilai.ui.screens
 
+import android.Manifest
+import androidx.activity.BackEventCompat
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.*
-import androidx.compose.foundation.layout.*
+import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.VerticalAlignBottom
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -23,13 +64,15 @@ import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
 import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
 import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.flow.Flow
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun CustomSongEditorScreen(
     initialSong: Song? = null,
     onSave: (Song) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
 ) {
     val context = LocalContext.current
     val customSongRepository = remember { CustomSongRepository(context) }
@@ -50,9 +93,26 @@ fun CustomSongEditorScreen(
     var showImportDialog by remember { mutableStateOf(false) }
     var importCode by remember { mutableStateOf("") }
     
-    val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
-    BackHandler(onBack = if (showCamera) { { showCamera = false } } else onCancel)
+    var predictiveProgress by remember { mutableFloatStateOf(0f) }
+    var swipeEdge by remember { mutableIntStateOf(BackEventCompat.EDGE_LEFT) }
+
+    if (showCamera) {
+        BackHandler(onBack = { showCamera = false })
+    } else {
+        PredictiveBackHandler { progress: Flow<BackEventCompat> ->
+            try {
+                progress.collect { backEvent ->
+                    predictiveProgress = backEvent.progress
+                    swipeEdge = backEvent.swipeEdge
+                }
+                onCancel()
+            } catch (_: CancellationException) {
+                predictiveProgress = 0f
+            }
+        }
+    }
 
     if (showWipWarning) {
         AlertDialog(
@@ -118,7 +178,40 @@ fun CustomSongEditorScreen(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = predictiveProgress,
+        animationSpec = spring(
+            stiffness = Spring.StiffnessMediumLow,
+            dampingRatio = Spring.DampingRatioLowBouncy
+        ),
+        label = "editorUnsnapProgress"
+    )
+
+    val densityPx = LocalDensity.current.density
+    val unsnapScale = 1f - (animatedProgress * 0.12f)
+    val unsnapCornerRadius = (animatedProgress * 28).dp
+    val unsnapTranslationX = if (swipeEdge == BackEventCompat.EDGE_RIGHT) {
+        -animatedProgress * 60f * densityPx
+    } else {
+        animatedProgress * 60f * densityPx
+    }
+    val unsnapTranslationY = animatedProgress * 20f * densityPx
+    val unsnapAlpha = 1f - (animatedProgress * 0.15f)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = unsnapScale
+                scaleY = unsnapScale
+                translationX = unsnapTranslationX
+                translationY = unsnapTranslationY
+                alpha = unsnapAlpha
+                shadowElevation = animatedProgress * 16f * densityPx
+                shape = RoundedCornerShape(unsnapCornerRadius)
+                clip = true
+            }
+    ) {
         Scaffold(
             topBar = {
                 Box(
@@ -178,60 +271,74 @@ fun CustomSongEditorScreen(
                     }
                 }
             }
-        ) { padding ->
+        ) { paddingValues ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
+                    Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text("Song Title") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
-                itemsIndexed(lyrics) { index, section ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth().liquidGlass(cornerRadius = 16),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                itemsIndexed(lyrics) { sectionIndex, section ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .liquidGlass(cornerRadius = 20)
+                            .padding(16.dp)
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (section.type == "chorus") "Chorus" else "Verse ${section.number ?: (index + 1)}",
-                                    style = MaterialTheme.typography.labelLarge,
+                                    text = if (section.type == "chorus") "Chorus" else "Verse ${section.number ?: (sectionIndex + 1)}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )
-                                IconButton(onClick = {
-                                    val newType = if (section.type == "verse") "chorus" else "verse"
-                                    lyrics[index] = section.copy(type = newType)
-                                }) {
-                                    Icon(
-                                        imageVector = if (section.type == "chorus") Icons.Default.FormatItalic else Icons.Default.FormatQuote,
-                                        contentDescription = "Toggle Type"
-                                    )
+                                TextButton(
+                                    onClick = {
+                                        val newType = if (section.type == "verse") "chorus" else "verse"
+                                        lyrics[sectionIndex] = section.copy(type = newType)
+                                    }
+                                ) {
+                                    Text(if (section.type == "verse") "Set as Chorus" else "Set as Verse")
                                 }
-                                IconButton(onClick = { if (lyrics.size > 1) lyrics.removeAt(index) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete Section")
+                                if (lyrics.size > 1) {
+                                    IconButton(
+                                        onClick = { lyrics.removeAt(sectionIndex) },
+                                        modifier = Modifier.bouncyClick { }
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Remove Section",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
                                 }
                             }
-                            
+
+                            Spacer(Modifier.height(8.dp))
+
                             OutlinedTextField(
                                 value = section.lines.joinToString("\n"),
                                 onValueChange = { text ->
-                                    lyrics[index] = section.copy(lines = text.split("\n"))
+                                    val newLines = text.split("\n")
+                                    lyrics[sectionIndex] = section.copy(lines = newLines)
                                 },
-                                placeholder = { Text("Enter lyrics here...") },
+                                label = { Text("Lyrics (one line per row)") },
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 3
                             )
@@ -240,12 +347,11 @@ fun CustomSongEditorScreen(
                 }
 
                 item {
-                    Button(
+                    TextButton(
                         onClick = {
                             lyrics.add(LyricSection("verse", lyrics.size + 1, listOf("")))
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp).bouncyClick { },
-                        shape = MaterialTheme.shapes.medium
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -264,11 +370,9 @@ fun CustomSongEditorScreen(
         ) {
             CameraOcrScreen(
                 onTextRecognized = { recognizedText ->
-                    // Try to split by double newline for sections
                     val sections = recognizedText.split(Regex("\n\\s*\n"))
                     if (sections.isNotEmpty()) {
-                        // Clear current empty lyric if it's the only one
-                        if (lyrics.size == 1 && lyrics[0].lines.all { it.isBlank() }) {
+                        if ((lyrics.size == 1) && lyrics[0].lines.all { it.isBlank() }) {
                             lyrics.clear()
                         }
                         sections.forEach { sectionText ->

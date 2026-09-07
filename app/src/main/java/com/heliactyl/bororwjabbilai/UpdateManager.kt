@@ -2,14 +2,11 @@ package com.heliactyl.bororwjabbilai
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import androidx.annotation.Keep
 import androidx.core.content.FileProvider
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -17,12 +14,11 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.concurrent.TimeUnit
 
 @Keep
 data class GitHubAsset(
     @SerializedName("name") val name: String,
-    @SerializedName("browser_download_url") val downloadUrl: String
+    @SerializedName("browser_download_url") val downloadUrl: String,
 )
 
 @Keep
@@ -30,14 +26,14 @@ data class GitHubRelease(
     @SerializedName("tag_name") val tagName: String,
     @SerializedName("body") val body: String,
     @SerializedName("html_url") val htmlUrl: String,
-    @SerializedName("assets") val assets: List<GitHubAsset>
+    @SerializedName("assets") val assets: List<GitHubAsset>,
 )
 
 class UpdateManager(private val context: Context) {
     private val currentVersion: String
         get() = try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "0.0.0"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "0.0.0"
         }
 
@@ -69,19 +65,12 @@ class UpdateManager(private val context: Context) {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                throw e // Rethrow to distinguish network failure from "no update"
+                throw e
             }
         }
     }
 
     fun downloadApk(downloadUrl: String): Flow<Float> = flow {
-        // Must NOT use withContext inside a flow {} builder — it violates flow's
-        // coroutine context and throws IllegalStateException at runtime.
-        // flowOn(Dispatchers.IO) at the end moves the whole upstream to IO correctly.
-
-        // GitHub's browser_download_url issues a 301/302 redirect.
-        // HttpURLConnection won't auto-follow across http->https boundaries,
-        // so we resolve the redirect chain manually before streaming.
         var resolvedUrl = downloadUrl
         repeat(5) { // up to 5 redirect hops
             val conn = (URL(resolvedUrl).openConnection() as HttpURLConnection).apply {
@@ -97,7 +86,6 @@ class UpdateManager(private val context: Context) {
                 resolvedUrl = conn.getHeaderField("Location") ?: return@repeat
                 conn.disconnect()
             } else {
-                // Arrived at the real download endpoint — stream to disk
                 val fileLength = conn.contentLength
                 val outputFile = File(cacheDir, apkName)
                 if (outputFile.exists()) outputFile.delete()

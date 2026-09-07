@@ -11,27 +11,24 @@ import java.io.IOException
 
 class SongRepository(private val context: Context) {
     fun getSongs(): List<Song> {
-        val jsonString: String
-        try {
-            jsonString = context.assets.open("song.json").bufferedReader().use { it.readText() }
+        val jsonString = try {
+            context.assets.open("song.json").bufferedReader().use { it.readText() }
         } catch (ioException: IOException) {
             ioException.printStackTrace()
             return emptyList()
         }
         
-        try {
+        return try {
             val listType = object : TypeToken<List<Song>>() {}.type
-            return Gson().fromJson(jsonString, listType)
+            Gson().fromJson(jsonString, listType)
         } catch (e: JsonSyntaxException) {
             e.printStackTrace()
-            // Extract meaningful part of the error if possible, or show full message
-            // Gson error format is usually: com.google.gson.JsonSyntaxException: ... at line X column Y path ...
             val errorMessage = "JSON Error: ${e.localizedMessage}"
             
             Handler(Looper.getMainLooper()).post {
                 Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
             }
-            return emptyList()
+            emptyList()
         }
     }
 }

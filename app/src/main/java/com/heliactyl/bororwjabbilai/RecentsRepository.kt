@@ -2,10 +2,15 @@ package com.heliactyl.bororwjabbilai
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 class RecentsRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("recents_prefs", Context.MODE_PRIVATE)
+    
+    @Suppress("PrivatePropertyName")
     private val KEY_RECENTS = "recent_song_ids"
+    
+    @Suppress("PrivatePropertyName")
     private val MAX_RECENTS = 20
 
     fun addRecent(songId: Int) {
@@ -25,12 +30,12 @@ class RecentsRepository(context: Context) {
         if (string.isBlank()) return emptyList()
         return try {
             string.split(",").map { it.toInt() }
-        } catch (e: NumberFormatException) {
+        } catch (_: NumberFormatException) {
             emptyList()
         }
     }
 
     private fun saveRecents(ids: List<Int>) {
-        prefs.edit().putString(KEY_RECENTS, ids.joinToString(",")).apply()
+        prefs.edit { putString(KEY_RECENTS, ids.joinToString(",")) }
     }
 }

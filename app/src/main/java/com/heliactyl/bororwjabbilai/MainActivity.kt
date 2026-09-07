@@ -1,8 +1,8 @@
 package com.heliactyl.bororwjabbilai
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,24 +25,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
 import com.heliactyl.bororwjabbilai.ui.SongApp
 import com.heliactyl.bororwjabbilai.ui.theme.BoroRwjabBilaiTheme
 import kotlinx.coroutines.launch
 import kotlin.math.hypot
 
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             display
         } else {
             @Suppress("DEPRECATION")
@@ -54,7 +55,8 @@ class MainActivity : ComponentActivity() {
             val currentMode = d.mode
             // Select mode with same resolution but highest refresh rate
             val highestRefreshRateMode = modes
-                .filter { it.physicalWidth == currentMode.physicalWidth && it.physicalHeight == currentMode.physicalHeight }
+                .asSequence()
+                .filter { (it.physicalWidth == currentMode.physicalWidth) && (it.physicalHeight == currentMode.physicalHeight) }
                 .maxByOrNull { it.refreshRate }
                 
             highestRefreshRateMode?.let { mode ->
@@ -68,7 +70,7 @@ class MainActivity : ComponentActivity() {
             val systemDark = isSystemInDarkTheme()
             val context = LocalContext.current
             val view = LocalView.current
-            val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+            val prefs = remember { context.getSharedPreferences("settings", MODE_PRIVATE) }
             val scope = rememberCoroutineScope()
             
             // 0: System, 1: Light, 2: Dark
@@ -77,13 +79,13 @@ class MainActivity : ComponentActivity() {
                 val initialMode = if (lastSystemDark != systemDark) {
                     // Update system tracking but keep user preference if it exists
                     val currentPref = prefs.getInt("theme_mode", 2) // Default to Dark (2)
-                    prefs.edit()
-                        .putBoolean("last_system_dark", systemDark)
-                        .apply()
+                    prefs.edit {
+                        putBoolean("last_system_dark", systemDark)
+                    }
                     currentPref
                 } else {
                     if (!prefs.contains("last_system_dark")) {
-                        prefs.edit().putBoolean("last_system_dark", systemDark).apply()
+                        prefs.edit { putBoolean("last_system_dark", systemDark) }
                     }
                     prefs.getInt("theme_mode", 2) // Default to Dark (2)
                 }
@@ -104,13 +106,13 @@ class MainActivity : ComponentActivity() {
                 Brush.linearGradient(
                     colors = listOf(Color(0xFF0F172A), Color(0xFF1E1E2F)),
                     start = Offset(0f, 0f),
-                    end = Offset(1000f, 1000f)
+                    end = Offset(1000f, 1000f),
                 )
             } else {
                 Brush.linearGradient(
                     colors = listOf(Color(0xFFDEE9FB), Color(0xFFF1F5F9)),
                     start = Offset(0f, 0f),
-                    end = Offset(1000f, 1000f)
+                    end = Offset(1000f, 1000f),
                 )
             }
 
@@ -154,7 +156,7 @@ class MainActivity : ComponentActivity() {
                             favoritesRepository = FavoritesRepository(context),
                             isDarkTheme = useDarkTheme,
                             onThemeCycle = { offset ->
-                                val bitmap = Bitmap.createBitmap(
+                                val bitmap = createBitmap(
                                     view.width,
                                     view.height,
                                     Bitmap.Config.ARGB_8888
@@ -174,7 +176,7 @@ class MainActivity : ComponentActivity() {
                                         else -> 1
                                     }
                                     themeMode = newMode
-                                    prefs.edit().putInt("theme_mode", newMode).apply()
+                                    prefs.edit { putInt("theme_mode", newMode) }
 
                                     val maxRadius = hypot(view.width.toFloat(), view.height.toFloat())
                                     transitionRadius.animateTo(maxRadius, animationSpec = tween(700))

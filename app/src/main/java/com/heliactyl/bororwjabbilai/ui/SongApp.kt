@@ -2,13 +2,14 @@ package com.heliactyl.bororwjabbilai.ui
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
+import androidx.core.content.edit
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -38,7 +39,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,6 +78,7 @@ private object WhiteRippleTheme : RippleTheme {
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+@Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun SongApp(
     songRepository: SongRepository,
@@ -116,10 +117,15 @@ fun SongApp(
     var showFilterSheet by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
     var updateRelease by remember { mutableStateOf<com.heliactyl.bororwjabbilai.GitHubRelease?>(null) }
-    var downloadProgress by remember { mutableFloatStateOf(-1f) }
 
     var query by rememberSaveable { mutableStateOf("") }
     var active by rememberSaveable { mutableStateOf(false) }
+
+    // Predictive back handlers for active overlay states
+    BackHandler(enabled = active) { active = false }
+    BackHandler(enabled = showFilterSheet) { showFilterSheet = false }
+    BackHandler(enabled = showInfoDialog) { showInfoDialog = false }
+    BackHandler(enabled = updateRelease != null) { updateRelease = null }
 
     val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
     var hasSeenSwipeTutorial by remember { mutableStateOf(prefs.getBoolean("has_seen_swipe_tutorial", false)) }
@@ -143,8 +149,8 @@ fun SongApp(
             try {
                 updateRelease = updateManager.checkForUpdate()
                 // If we reach here, the check was successful (even if updateRelease is null)
-                prefs.edit().putString("last_update_check_date", currentDate).apply()
-            } catch (e: Exception) {
+                prefs.edit { putString("last_update_check_date", currentDate) }
+            } catch (_: Exception) {
                 // Ignore error (no internet etc), don't update lastCheckDate to retry on next startup
             }
         }
@@ -272,7 +278,7 @@ fun SongApp(
                         }
                     }
                 ) {
-                    androidx.compose.material3.Tab(
+                    Tab(
                         selected = filterPagerState.currentPage == 0,
                         onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(0) } },
                         modifier = Modifier.zIndex(2f),
@@ -285,7 +291,7 @@ fun SongApp(
                         selectedContentColor = MaterialTheme.colorScheme.primary,
                         unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
-                    androidx.compose.material3.Tab(
+                    Tab(
                         selected = filterPagerState.currentPage == 1,
                         onClick = { coroutineScope.launch { filterPagerState.animateScrollToPage(1) } },
                         modifier = Modifier.zIndex(2f),
@@ -548,7 +554,7 @@ fun SongApp(
 
         // 1. MAIN APP CONTENT (BLURRED)
         Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
-            Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { innerPadding ->
+            Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { _ ->
                 val topBarHeight = 140.dp
                 val bottomBarHeight = 110.dp
 
@@ -659,7 +665,7 @@ fun SongApp(
                             val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
                             
                             BoxWithConstraints(Modifier.fillMaxSize()) {
-                                val totalWidthPx = constraints.maxWidth
+                                val totalWidthPx = with(LocalDensity.current) { this@BoxWithConstraints.maxWidth.toPx() }
                                 val slotWidthPx = totalWidthPx / 3f
                                 
                                 val targetCenterPx = (continuousPage + 0.5f) * slotWidthPx
