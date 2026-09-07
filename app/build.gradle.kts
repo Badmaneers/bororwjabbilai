@@ -16,8 +16,8 @@ android {
         applicationId = "com.heliactyl.bororwjabbilai"
         minSdk = 23
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.4.7"
+        versionCode = 5
+        versionName = "1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
