@@ -2,6 +2,10 @@ package com.heliactyl.bororwjabbilai
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
 import androidx.annotation.Keep
 import androidx.core.content.FileProvider
 import com.google.gson.Gson
@@ -115,6 +119,18 @@ class UpdateManager(private val context: Context) {
     fun installApk() {
         val apkFile = File(cacheDir, apkName)
         if (!apkFile.exists()) return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                Uri.parse("package:${context.packageName}")
+            ).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            Toast.makeText(context, "Please enable 'Install unknown apps' permission and try again", Toast.LENGTH_LONG).show()
+            return
+        }
 
         val uri = FileProvider.getUriForFile(
             context,

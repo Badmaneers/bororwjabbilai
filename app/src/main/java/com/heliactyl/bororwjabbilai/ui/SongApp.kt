@@ -2,6 +2,7 @@ package com.heliactyl.bororwjabbilai.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.core.content.edit
 import androidx.compose.animation.*
@@ -520,6 +521,146 @@ fun SongApp(
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                         TextButton(onClick = { showInfoDialog = false }) {
                             Text("Close", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Update available dialog ───────────────────────────────────────────────
+    val release = updateRelease
+    if (release != null) {
+        var isDownloading by remember { mutableStateOf(false) }
+        var downloadProgress by remember { mutableFloatStateOf(0f) }
+
+        Dialog(
+            onDismissRequest = {
+                if (!isDownloading) updateRelease = null
+            },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .liquidGlass(cornerRadius = 32)
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SystemUpdate,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Column {
+                            Text(
+                                "Update Available!",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Version ${release.tagName}",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    if (release.body.isNotBlank()) {
+                        val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 180.dp)
+                                .liquidGlass(
+                                    color = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f),
+                                    cornerRadius = 16
+                                )
+                                .padding(14.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            Text(
+                                text = release.body,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                lineHeight = 20.sp
+                            )
+                        }
+                    }
+
+                    if (isDownloading) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            LinearProgressIndicator(
+                                progress = { downloadProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                            )
+                            Text(
+                                text = "Downloading... ${(downloadProgress * 100).toInt()}%",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(
+                                onClick = { updateRelease = null }
+                            ) {
+                                Text("Later")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    val apkAsset = release.assets.find { it.name.endsWith(".apk") } ?: release.assets.firstOrNull()
+                                    if (apkAsset != null) {
+                                        coroutineScope.launch {
+                                            isDownloading = true
+                                            downloadProgress = 0f
+                                            try {
+                                                updateManager.downloadApk(apkAsset.downloadUrl).collect { progress ->
+                                                    downloadProgress = progress
+                                                }
+                                                updateManager.installApk()
+                                                updateRelease = null
+                                            } catch (e: Exception) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Download failed: ${e.localizedMessage}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            } finally {
+                                                isDownloading = false
+                                            }
+                                        }
+                                    } else {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(release.htmlUrl)))
+                                        updateRelease = null
+                                    }
+                                }
+                            ) {
+                                Text("Update Now", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
