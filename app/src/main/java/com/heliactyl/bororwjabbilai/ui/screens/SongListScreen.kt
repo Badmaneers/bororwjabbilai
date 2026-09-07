@@ -165,11 +165,11 @@ fun SongListScreen(
                     )
                     SocialRow(
                         text = "Telegram",
-                        handle = "@dumbdragon",
+                        handle = "@heliactyl",
                         iconModel = "file:///android_asset/telegram.svg",
                         imageLoader = imageLoader,
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/dumbdragon"))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/heliactyl"))
                             context.startActivity(intent)
                         }
                     )

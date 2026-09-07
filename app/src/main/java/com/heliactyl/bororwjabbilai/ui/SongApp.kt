@@ -480,11 +480,11 @@ fun SongApp(
                         )
                         SocialRow(
                             text = "Telegram",
-                            handle = "@dumbdragon",
+                            handle = "@heliactyl",
                             iconModel = "file:///android_asset/telegram.svg",
                             imageLoader = imageLoader,
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/dumbdragon")))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/heliactyl")))
                             }
                         )
                         SocialRow(
