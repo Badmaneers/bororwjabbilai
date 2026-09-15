@@ -14,17 +14,44 @@ data class Song(
     @SerializedName("isFavorite") val isFavorite: Boolean = false,
     @SerializedName("isCustom") val isCustom: Boolean = false,
 ) {
-    val searchLyricsText: String by lazy {
-        lyrics.asSequence().flatMap { it.lines }.joinToString(" ")
-    }
+    @Transient
+    private var _searchLyricsText: String? = null
 
-    val searchIdString: String by lazy {
-        id.toString()
-    }
+    val searchLyricsText: String
+        get() {
+            var text = _searchLyricsText
+            if (text == null) {
+                text = lyrics.asSequence().flatMap { it.lines }.joinToString(" ")
+                _searchLyricsText = text
+            }
+            return text
+        }
 
-    val searchTitleLower: String by lazy {
-        title.lowercase()
-    }
+    @Transient
+    private var _searchIdString: String? = null
+
+    val searchIdString: String
+        get() {
+            var idStr = _searchIdString
+            if (idStr == null) {
+                idStr = id.toString()
+                _searchIdString = idStr
+            }
+            return idStr
+        }
+
+    @Transient
+    private var _searchTitleLower: String? = null
+
+    val searchTitleLower: String
+        get() {
+            var titleLower = _searchTitleLower
+            if (titleLower == null) {
+                titleLower = title.lowercase()
+                _searchTitleLower = titleLower
+            }
+            return titleLower
+        }
 }
 
 @Keep
