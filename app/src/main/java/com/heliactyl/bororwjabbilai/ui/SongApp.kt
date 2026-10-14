@@ -9,7 +9,9 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -956,6 +958,20 @@ fun SongApp(
                     }
                 }
             }
+        }
+
+        // 1.2 SEARCH SCRIM — while search is open the blurred page must not
+        // receive touches; tapping outside dismisses search instead.
+        if (active) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { active = false }
+                    )
+            )
         }
 
         // 1.5 FLOATING SEARCH BAR — fixed overlay OUTSIDE layerBackdrop.
