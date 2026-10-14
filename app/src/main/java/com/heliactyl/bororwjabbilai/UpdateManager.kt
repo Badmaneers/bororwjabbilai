@@ -116,11 +116,22 @@ class UpdateManager(private val context: Context) {
         }
     }.flowOn(Dispatchers.IO)
 
-    fun installApk() {
-        val apkFile = File(cacheDir, apkName)
-        if (!apkFile.exists()) return
+    fun canRequestInstall(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+            context.packageManager.canRequestPackageInstalls()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
+    fun hasDownloadedApk(): Boolean = File(cacheDir, apkName).exists()
+
+    /**
+     * Launches the package installer for the downloaded APK.
+     * Returns false when install permission is missing — Settings is opened
+     * instead so the caller can keep its UI and retry on return.
+     */
+    fun installApk(): Boolean {
+        val apkFile = File(cacheDir, apkName)
+        if (!apkFile.exists()) return true
+
+        if (!canRequestInstall()) {
             val intent = Intent(
                 Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                 Uri.parse("package:${context.packageName}")
@@ -129,7 +140,7 @@ class UpdateManager(private val context: Context) {
             }
             context.startActivity(intent)
             Toast.makeText(context, "Please enable 'Install unknown apps' permission and try again", Toast.LENGTH_LONG).show()
-            return
+            return false
         }
 
         val uri = FileProvider.getUriForFile(
@@ -145,6 +156,7 @@ class UpdateManager(private val context: Context) {
         }
         
         context.startActivity(intent)
+        return true
     }
 
     fun clearCache() {

@@ -2,6 +2,7 @@ package com.heliactyl.bororwjabbilai.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.core.content.edit
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -72,6 +74,7 @@ import com.heliactyl.bororwjabbilai.ui.screens.SongDetailScreen
 import com.heliactyl.bororwjabbilai.ui.screens.SongListScreen
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -119,6 +122,18 @@ fun SongApp(
     var query by rememberSaveable { mutableStateOf("") }
     var active by rememberSaveable { mutableStateOf(false) }
 
+    // Debounce keystrokes: the full-library filter + lyric snippet scan
+    // runs once per typing pause instead of once per character.
+    var debouncedQuery by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(query) {
+        if (query.isBlank()) {
+            debouncedQuery = query
+        } else {
+            delay(150)
+            debouncedQuery = query
+        }
+    }
+
     // Predictive back handlers for active overlay states
     BackHandler(enabled = active) { active = false }
     BackHandler(enabled = showFilterSheet) { showFilterSheet = false }
@@ -134,8 +149,8 @@ fun SongApp(
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
 
     LaunchedEffect(Unit) {
-        updateManager.clearCache()
         withContext(Dispatchers.IO) {
+            updateManager.clearCache()
             songs = songRepository.getSongs()
         }
         
@@ -530,6 +545,33 @@ fun SongApp(
     if (release != null) {
         var isDownloading by remember { mutableStateOf(false) }
         var downloadProgress by remember { mutableFloatStateOf(0f) }
+        var downloaded by remember { mutableStateOf(updateManager.hasDownloadedApk()) }
+        var needsPermission by remember { mutableStateOf(false) }
+
+        // If Settings was opened for the install permission, fire the
+        // package installer automatically when the user comes back granted.
+        val dialogView = LocalView.current
+        DisposableEffect(dialogView, needsPermission) {
+            val treeObserver = dialogView.viewTreeObserver.takeIf { it.isAlive }
+            val listener = ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
+                if (hasFocus && needsPermission &&
+                    updateManager.canRequestInstall() && updateManager.hasDownloadedApk()
+                ) {
+                    if (updateManager.installApk()) {
+                        needsPermission = false
+                        updateRelease = null
+                    }
+                }
+            }
+            treeObserver?.addOnWindowFocusChangeListener(listener)
+            onDispose {
+                runCatching {
+                    if (treeObserver?.isAlive == true) {
+                        treeObserver.removeOnWindowFocusChangeListener(listener)
+                    }
+                }
+            }
+        }
 
         Dialog(
             onDismissRequest = {
@@ -616,6 +658,13 @@ fun SongApp(
                             )
                         }
                     } else {
+                        if (needsPermission) {
+                            Text(
+                                text = "Install permission is off — enable 'Install unknown apps' in Settings, then come back; the installer opens automatically.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End,
@@ -635,11 +684,18 @@ fun SongApp(
                                             isDownloading = true
                                             downloadProgress = 0f
                                             try {
-                                                updateManager.downloadApk(apkAsset.downloadUrl).collect { progress ->
-                                                    downloadProgress = progress
+                                                if (!downloaded) {
+                                                    updateManager.downloadApk(apkAsset.downloadUrl).collect { progress ->
+                                                        downloadProgress = progress
+                                                    }
+                                                    downloaded = true
                                                 }
-                                                updateManager.installApk()
-                                                updateRelease = null
+                                                if (updateManager.installApk()) {
+                                                    needsPermission = false
+                                                    updateRelease = null
+                                                } else {
+                                                    needsPermission = true
+                                                }
                                             } catch (e: Exception) {
                                                 Toast.makeText(
                                                     context,
@@ -656,7 +712,7 @@ fun SongApp(
                                     }
                                 }
                             ) {
-                                Text("Update Now", fontWeight = FontWeight.Bold)
+                                Text(if (downloaded) "Open Installer" else "Update Now", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1065,10 +1121,10 @@ fun SongApp(
             ) {
                 val favoriteSet = remember(favoriteIds) { favoriteIds.toSet() }
 
-                val filteredSongsWithSnippets = remember(query, allSongs) {
-                    if (query.isBlank()) allSongs.map { it to null }
+                val filteredSongsWithSnippets = remember(debouncedQuery, allSongs) {
+                    if (debouncedQuery.isBlank()) allSongs.map { it to null }
                     else {
-                        val q = query.trim().lowercase()
+                        val q = debouncedQuery.trim().lowercase()
                         allSongs.mapNotNull { song ->
                             val allLyrics = song.searchLyricsText
                             val titleMatch = song.searchTitleLower.contains(q)
