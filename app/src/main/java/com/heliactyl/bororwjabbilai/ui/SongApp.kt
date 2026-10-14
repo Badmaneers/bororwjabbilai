@@ -519,13 +519,13 @@ fun SongApp(
                         )
                         SocialRow(
                             text = "Email",
-                            handle = "dukebraham24@gmail.com",
+                            handle = "dukebrahma6@gmail.com",
                             iconVector = Icons.Default.Email,
                             imageLoader = imageLoader,
                             tint = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color.White else Color.Black,
                             onClick = {
                                 context.startActivity(
-                                    Intent(Intent.ACTION_SENDTO).apply { data = Uri.parse("mailto:dukebraham24@gmail.com") }
+                                    Intent(Intent.ACTION_SENDTO).apply { data = Uri.parse("mailto:dukebrahma6@gmail.com") }
                                 )
                             }
                         )

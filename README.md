@@ -86,14 +86,14 @@ Found a bug or have a suggestion? We'd love to hear from you!
 
 1.  **Check existing issues**: Verify if the bug has already been reported.
 2.  **Open a new issue**: Provide details about the bug (device, steps to reproduce, screenshots).
-3.  **Email**: Send directly to `dukebraham24@gmail.com`.
+3.  **Email**: Send directly to `dukebrahma6@gmail.com`.
 4.  **Telegram**: Message us at `@heliactyl`.
 
 ## 🤝 Donation & Support
 
 If you find this project useful and would like to support its development, you can reach out via:
 
-*   **Email**: `dukebraham24@gmail.com`
+*   **Email**: `dukebrahma6@gmail.com`
 *   **Telegram**: [`@heliactyl`](https://t.me/heliactyl)
 
 Support helps in maintaining the server (if applicable) and motivating further development!
