@@ -1,13 +1,8 @@
 package com.heliactyl.bororwjabbilai.ui.components
 
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.os.Build
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,92 +11,53 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.heliactyl.bororwjabbilai.ui.glass.LocalGlassEffectConfig
+import com.heliactyl.bororwjabbilai.ui.glass.fallbackGlass
+import com.heliactyl.bororwjabbilai.ui.glass.trueLiquidGlass
 
 @Composable
 fun Modifier.liquidGlass(
     color: Color? = null,
     borderWidth: Float? = null,
     cornerRadius: Int = 24,
-    blurRadius: Float = 0f,
+    @Suppress("UNUSED_PARAMETER") blurRadius: Float = 0f,
 ): Modifier {
-    val backgroundColor = MaterialTheme.colorScheme.surface
-    val isDark = backgroundColor.luminance() < 0.5f
-    
-    // Modern iOS-style frosted glass values
-    val baseColor = color ?: if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.70f)
-    } else {
-        Color.White.copy(alpha = 0.50f) // Slightly more transparent for better contrast with borders
-    }
-    
-    val finalBorderWidth = borderWidth ?: if (isDark) 1f else 1.2f
-    
-    val borderBrush = if (isDark) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.22f),
-                Color.White.copy(alpha = 0.08f),
-            )
-        )
-    } else {
-        // High-contrast elegant border for light mode
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 1.0f),  // Fully solid top specular for maximum pop
-                Color.Black.copy(alpha = 0.25f), // Much darker bottom edge for shadow depth
-            )
-        )
-    }
-
-    return this.then(
-        Modifier
-            .graphicsLayer {
-                if ((blurRadius > 0f) && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)) {
-                    renderEffect = RenderEffect.createBlurEffect(
-                        blurRadius,
-                        blurRadius,
-                        Shader.TileMode.MIRROR
-                    ).asComposeRenderEffect()
-                }
-                shape = RoundedCornerShape(cornerRadius.dp)
-                clip = true
-            }
-            .background(
-                Brush.verticalGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            baseColor.copy(alpha = baseColor.alpha * 1.1f),
-                            baseColor,
-                            baseColor.copy(alpha = baseColor.alpha * 0.9f)
-                        )
-                    } else {
-                        listOf(
-                            baseColor.copy(alpha = baseColor.alpha * 0.8f),
-                            baseColor,
-                            baseColor.copy(alpha = baseColor.alpha * 1.2f)
-                        )
-                    }
-                )
-            )
-            .border(
-                width = finalBorderWidth.dp,
-                brush = borderBrush,
-                shape = RoundedCornerShape(cornerRadius.dp)
-            )
+    return this.fallbackGlass(
+        cornerRadiusDp = cornerRadius,
+        tint = color,
+        borderWidthDp = borderWidth,
     )
+}
+
+@Composable
+fun Modifier.glassOverlay(
+    color: Color? = null,
+    borderWidth: Float? = null,
+    cornerRadius: Int = 24,
+    blurRadiusDp: Float? = null,
+): Modifier {
+    val config = LocalGlassEffectConfig.current
+    val shape = RoundedCornerShape(cornerRadius.dp)
+    return this
+        .fallbackGlass(
+            cornerRadiusDp = cornerRadius,
+            tint = color,
+            borderWidthDp = borderWidth,
+        )
+        .trueLiquidGlass(
+            config = config,
+            shape = shape,
+            applyEdgeEffects = cornerRadius > 0,
+            blurRadiusDp = blurRadiusDp ?: config.blurRadius,
+        )
 }
 
 @Composable

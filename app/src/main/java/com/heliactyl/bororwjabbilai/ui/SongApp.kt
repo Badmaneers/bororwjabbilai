@@ -47,9 +47,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.material.ripple.LocalRippleTheme
-import androidx.compose.material.ripple.RippleAlpha
-import androidx.compose.material.ripple.RippleTheme
 import com.heliactyl.bororwjabbilai.BuildConfig
 import coil.ImageLoader
 import coil.decode.SvgDecoder
@@ -61,7 +58,13 @@ import com.heliactyl.bororwjabbilai.ui.Occasion
 import com.heliactyl.bororwjabbilai.ui.components.SocialRow
 import com.heliactyl.bororwjabbilai.ui.components.SongItem
 import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
+import com.heliactyl.bororwjabbilai.ui.components.glassOverlay
 import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
+import com.heliactyl.bororwjabbilai.ui.glass.GlassEffectConfig
+import com.heliactyl.bororwjabbilai.ui.glass.LocalAppBackdrop
+import com.heliactyl.bororwjabbilai.ui.glass.LocalGlassEffectConfig
+import com.heliactyl.bororwjabbilai.ui.glass.backdrop.backdrops.layerBackdrop
+import com.heliactyl.bororwjabbilai.ui.glass.backdrop.backdrops.rememberLayerBackdrop
 import com.heliactyl.bororwjabbilai.ui.occasionFilters
 import com.heliactyl.bororwjabbilai.ui.screens.SongDetailScreen
 import com.heliactyl.bororwjabbilai.ui.screens.SongListScreen
@@ -69,15 +72,6 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-@Immutable
-private object WhiteRippleTheme : RippleTheme {
-    @Composable
-    override fun defaultColor() = Color.White
-
-    @Composable
-    override fun rippleAlpha() = RippleAlpha(0.2f, 0.15f, 0.1f, 0.2f)
-}
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
@@ -196,12 +190,13 @@ fun SongApp(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .liquidGlass(cornerRadius = 32)
+                    .glassOverlay(cornerRadius = 32)
                     .padding(bottom = 32.dp)
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 // ── Tab selector ──────────────────────────────────────────────
+                // Static: nested inside the sheet's true-glass container.
                 TabRow(
                     selectedTabIndex = filterPagerState.currentPage,
                     modifier = Modifier
@@ -467,7 +462,7 @@ fun SongApp(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlass(cornerRadius = 32)
+                        .glassOverlay(cornerRadius = 32)
                         .padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -549,7 +544,7 @@ fun SongApp(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlass(cornerRadius = 32)
+                        .glassOverlay(cornerRadius = 32)
                         .padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -674,6 +669,17 @@ fun SongApp(
         if (selectedSong != null) detailSong.value = selectedSong
     }
 
+    // ── Echo-style true glass backdrop ────────────────────────────────────
+    // Records scrolling list content; bottom/search bars sample it via
+    // trueLiquidGlass (lens + blur + vibrancy). Falls back to translucent
+    // material on pre-S devices (see fallbackGlass).
+    val appBackdrop = rememberLayerBackdrop { drawContent() }
+    val glassConfig = remember { GlassEffectConfig() }
+
+    CompositionLocalProvider(
+        LocalAppBackdrop provides appBackdrop,
+        LocalGlassEffectConfig provides glassConfig,
+    ) {
     Box(modifier = Modifier.fillMaxSize()) {
         val baseBlur by animateDpAsState(
             targetValue = if (showFilterSheet || showInfoDialog || updateRelease != null || active) 10.dp else 0.dp,
@@ -703,7 +709,9 @@ fun SongApp(
                 Box(Modifier.fillMaxSize()) {
                     HorizontalPager(
                         state = pagerState,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .layerBackdrop(appBackdrop)
                     ) { page ->
                         val screenPadding = PaddingValues(top = topBarHeight, bottom = bottomBarHeight)
                         when (page) {
@@ -788,13 +796,14 @@ fun SongApp(
                         }
                     }
 
-                    // Floating Bottom Bar (Inside blurred container)
+                    // Floating Bottom Bar — fixed overlay OUTSIDE layerBackdrop,
+                    // so true backdrop-sampled glass is safe here.
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(16.dp)
                             .navigationBarsPadding()
-                            .liquidGlass(cornerRadius = 32)
+                            .glassOverlay(cornerRadius = 32)
                     ) {
                         // Glassy Pill Indicator
                         val continuousPage = pagerState.currentPage + pagerState.currentPageOffsetFraction
@@ -859,14 +868,11 @@ fun SongApp(
                             }
                         }
 
-                        CompositionLocalProvider(
-                            LocalRippleTheme provides WhiteRippleTheme
+                        NavigationBar(
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier.zIndex(1f)
                         ) {
-                            NavigationBar(
-                                containerColor = Color.Transparent, 
-                                tonalElevation = 0.dp,
-                                modifier = Modifier.zIndex(1f)
-                            ) {
                                 val navItemColors = NavigationBarItemDefaults.colors(
                                     indicatorColor = Color.Transparent,
                                     selectedIconColor = MaterialTheme.colorScheme.primary,
@@ -917,7 +923,6 @@ fun SongApp(
                                     colors = navItemColors
                                 )
                             }
-                        }
                     }
 
                     // Swipe-up tutorial hint
@@ -953,13 +958,13 @@ fun SongApp(
             }
         }
 
-        // 1.5 FLOATING SEARCH BAR (UNBLURRED)
+        // 1.5 FLOATING SEARCH BAR — fixed overlay OUTSIDE layerBackdrop.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
-                .liquidGlass(cornerRadius = 28)
+                .glassOverlay(cornerRadius = 28)
         ) {
             androidx.compose.material3.DockedSearchBar(
                 query = query,
@@ -1137,5 +1142,6 @@ fun SongApp(
                 }
             )
         }
+    }
     }
 }
