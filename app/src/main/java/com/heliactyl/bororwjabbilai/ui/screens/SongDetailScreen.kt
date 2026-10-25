@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,6 +78,7 @@ import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlin.math.abs
 
 fun shareLyrics(context: Context, song: Song, textToShare: String? = null) {
     val shareText = if (textToShare != null) {
@@ -112,6 +114,24 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
     
     var keepScreenOn by remember { mutableStateOf(prefs.getBoolean("keep_screen_on", false)) }
     var fontSize by remember { mutableFloatStateOf(prefs.getFloat("font_size", 18f)) }
+
+    // Two-finger pinch HUD: bumped on every applied zoom tick.
+    var showPinchHud by remember { mutableStateOf(false) }
+    var hudTick by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(hudTick) {
+        if (hudTick > 0) {
+            showPinchHud = true
+            delay(800)
+            showPinchHud = false
+        }
+    }
+
+    // Settle-write the size once pinch/button changes stop landing.
+    LaunchedEffect(fontSize) {
+        delay(300)
+        prefs.edit { putFloat("font_size", fontSize) }
+    }
 
     var notificationMessage by remember { mutableStateOf("") }
     var showNotification by remember { mutableStateOf(false) }
@@ -387,6 +407,42 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    // Two-finger pinch resizes the lyrics font (same value as
+                    // the A-/A+ controls). Only consumed when two pointers are
+                    // down, so single-finger scrolling and edge-swipe back are
+                    // untouched.
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            var prevSpan = 0f
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val pointers = event.changes.filter { it.pressed }
+                                if (pointers.isEmpty()) break
+
+                                val consumed = event.changes.any { it.isConsumed }
+                                if (pointers.size < 2 || consumed) {
+                                    prevSpan = 0f
+                                    continue
+                                }
+
+                                val span = (pointers[0].position - pointers[1].position).getDistance()
+                                val prev = prevSpan
+                                prevSpan = span
+                                if (prev <= 0f) continue
+
+                                val zoom = span / prev
+                                // Deadzone so two resting fingers don't drift the size.
+                                if (abs(zoom - 1f) < 0.005f) continue
+
+                                val newSize = (fontSize * zoom).coerceIn(12f, 40f)
+                                if (newSize != fontSize) {
+                                    fontSize = newSize
+                                    hudTick++
+                                }
+                                event.changes.forEach { it.consume() }
+                            }
+                        }
+                    }
                     .padding(paddingValues)
             ) {
                 SelectionContainer {
@@ -438,6 +494,41 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                 text = notificationMessage,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
+                // Font size HUD shown while pinch-zooming.
+                AnimatedVisibility(
+                    visible = showPinchHud,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .zIndex(10f)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.Black.copy(alpha = 0.8f),
+                        contentColor = Color.White,
+                        shadowElevation = 8.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.TextFields,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = fontSize.toInt().toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
