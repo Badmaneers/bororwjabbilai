@@ -2,6 +2,8 @@ package com.heliactyl.bororwjabbilai.baselineprofile
 
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,13 +17,33 @@ class BaselineProfileGenerator {
     @Test
     fun generate() = baselineProfileRule.collect(
         packageName = "com.heliactyl.bororwjabbilai",
-        includeInStartupProfile = true
+        includeInStartupProfile = true,
     ) {
-        // This block defines the user journey to profile.
-        // For a basic profile, just starting the app is enough.
+        // 1. App Startup
         pressHome()
         startActivityAndWait()
-        
-        // Add more interactions here if needed to profile critical paths.
+
+        // Wait for main UI to render
+        device.wait(Until.hasObject(By.pkg(packageName)), 5_000)
+
+        // 2. Perform smooth swipe gesture on screen
+        val width = device.displayWidth
+        val height = device.displayHeight
+
+        device.swipe(width / 2, height * 3 / 4, width / 2, height / 4, 10)
+        device.waitForIdle()
+        device.swipe(width / 2, height / 4, width / 2, height * 3 / 4, 10)
+        device.waitForIdle()
+
+        // 3. Open Song Detail View if available
+        val firstSong = device.findObject(By.textContains("."))
+        if (firstSong != null) {
+            firstSong.click()
+            device.waitForIdle()
+
+            // 4. Back gesture from Detail View
+            device.pressBack()
+            device.waitForIdle()
+        }
     }
 }
