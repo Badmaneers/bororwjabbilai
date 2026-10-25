@@ -10,6 +10,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -183,6 +184,20 @@ fun SongApp(
     }
 
     // ── Filter bottom sheet ───────────────────────────────────────────────────
+    // ── Echo-style true glass backdrop ────────────────────────────────────
+    // Records scrolling list content; fixed overlays (bottom bar, search bar,
+    // filter sheet, dialogs) sample it via trueLiquidGlass (lens + blur +
+    // vibrancy). Provided ABOVE the sheet/dialogs so their glassOverlay still
+    // resolves LocalAppBackdrop inside those windows' subcompositions.
+    // Falls back to translucent material on pre-S devices (see fallbackGlass).
+    val appBackdrop = rememberLayerBackdrop { drawContent() }
+    val glassConfig = remember { GlassEffectConfig() }
+
+    CompositionLocalProvider(
+        LocalAppBackdrop provides appBackdrop,
+        LocalGlassEffectConfig provides glassConfig,
+    ) {
+
     if (showFilterSheet) {
         ModalBottomSheet(
             sheetState = sheetState,
@@ -213,19 +228,40 @@ fun SongApp(
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 // ── Tab selector ──────────────────────────────────────────────
-                // Static: nested inside the sheet's true-glass container.
+                // Fixed inside the sheet's dialog window, OUTSIDE the recorded
+                // pager — safe to sample the backdrop for true glass.
                 TabRow(
                     selectedTabIndex = filterPagerState.currentPage,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp, vertical = 12.dp)
                         .height(52.dp)
-                        .liquidGlass(
+                        .glassOverlay(
                             cornerRadius = 26,
                             color = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f)
                                 Color.White.copy(alpha = 0.04f)
                             else
                                 Color.Black.copy(alpha = 0.02f)
+                        )
+                        // Specular rim drawn ABOVE the sampled backdrop (edge
+                        // effects are skipped on HyperOS, so keep a border).
+                        .border(
+                            width = 1.dp,
+                            brush = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f)
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 0.22f),
+                                        Color.White.copy(alpha = 0.08f),
+                                    )
+                                )
+                            else
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 1f),
+                                        Color.Black.copy(alpha = 0.25f),
+                                    )
+                                ),
+                            shape = RoundedCornerShape(26.dp),
                         ),
                     containerColor = Color.Transparent,
                     divider = {},
@@ -363,34 +399,52 @@ fun SongApp(
                                 ) {
                                     chars.forEach { char ->
                                         val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+                                        val selected = filterChar == char
                                         Box(
                                             modifier = Modifier
                                                 .liquidGlass(
-                                                    color = if (filterChar == char)
+                                                    color = if (selected)
                                                         MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                                     else
                                                         if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f),
-                                                    cornerRadius = 12
+                                                    cornerRadius = 12,
+                                                    borderWidth = if (selected) 1.6f else null
                                                 )
                                                 .bouncyClick {
-                                                    filterChar = if (filterChar == char) null else char
+                                                    filterChar = if (selected) null else char
                                                     filterOccasion = null
                                                     showFilterSheet = false
                                                 }
-                                                .padding(horizontal = 16.dp, vertical = 8.dp)
                                         ) {
-                                            Text(
-                                                text = char,
-                                                style = MaterialTheme.typography.labelLarge,
-                                                color = if (filterChar == char)
-                                                    MaterialTheme.colorScheme.primary
-                                                else
-                                                    MaterialTheme.colorScheme.onSurface
+                                            // Specular top highlight — glass pill treatment.
+                                            Box(
+                                                Modifier
+                                                    .matchParentSize()
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            0f to Color.White.copy(alpha = if (isDark) 0.16f else 0.34f),
+                                                            0.45f to Color.Transparent,
+                                                        )
+                                                    )
+                                            )
+                                            Box(
+                                                Modifier
+                                                    .align(Alignment.Center)
+                                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                            ) {
+                                                Text(
+                                                    text = char,
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    color = if (selected)
+                                                        MaterialTheme.colorScheme.primary
+                                                    else
+                                                        MaterialTheme.colorScheme.onSurface
                                             )
                                         }
                                     }
                                 }
                             }
+                        }
                         }
                         1 -> {
                             Column(
@@ -425,31 +479,45 @@ fun SongApp(
                                     items(occasionFilters.size) { index ->
                                         val occasion = occasionFilters[index]
                                         val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+                                        val selected = filterOccasion == occasion
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .liquidGlass(
-                                                    color = if (filterOccasion == occasion)
+                                                    color = if (selected)
                                                         MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                                     else
                                                         if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f),
-                                                    cornerRadius = 16
+                                                    cornerRadius = 16,
+                                                    borderWidth = if (selected) 1.6f else null
                                                 )
                                                 .bouncyClick {
-                                                    filterOccasion = if (filterOccasion == occasion) null else occasion
+                                                    filterOccasion = if (selected) null else occasion
                                                     filterChar = null
                                                     showFilterSheet = false
                                                 }
-                                                .padding(16.dp)
                                         ) {
-                                            Text(
-                                                text = occasion.name,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                color = if (filterOccasion == occasion)
-                                                    MaterialTheme.colorScheme.primary
-                                                else
-                                                    MaterialTheme.colorScheme.onSurface
+                                            // Specular top highlight — glass pill treatment.
+                                            Box(
+                                                Modifier
+                                                    .matchParentSize()
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            0f to Color.White.copy(alpha = if (isDark) 0.14f else 0.30f),
+                                                            0.45f to Color.Transparent,
+                                                        )
+                                                    )
                                             )
+                                            Box(Modifier.padding(16.dp)) {
+                                                Text(
+                                                    text = occasion.name,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = if (selected)
+                                                        MaterialTheme.colorScheme.primary
+                                                    else
+                                                        MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -727,17 +795,6 @@ fun SongApp(
         if (selectedSong != null) detailSong.value = selectedSong
     }
 
-    // ── Echo-style true glass backdrop ────────────────────────────────────
-    // Records scrolling list content; bottom/search bars sample it via
-    // trueLiquidGlass (lens + blur + vibrancy). Falls back to translucent
-    // material on pre-S devices (see fallbackGlass).
-    val appBackdrop = rememberLayerBackdrop { drawContent() }
-    val glassConfig = remember { GlassEffectConfig() }
-
-    CompositionLocalProvider(
-        LocalAppBackdrop provides appBackdrop,
-        LocalGlassEffectConfig provides glassConfig,
-    ) {
     Box(modifier = Modifier.fillMaxSize()) {
         val baseBlur by animateDpAsState(
             targetValue = if (showFilterSheet || showInfoDialog || updateRelease != null || active) 10.dp else 0.dp,
