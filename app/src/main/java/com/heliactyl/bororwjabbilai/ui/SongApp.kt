@@ -1284,15 +1284,6 @@ fun SongApp(
                 label = "searchWidth"
             )
 
-            val animatedSearchHeight by animateDpAsState(
-                targetValue = if (isSearchCollapsed) collapsedSize else 56.dp,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                label = "searchHeight"
-            )
-
             var isSearchPressed by remember { mutableStateOf(false) }
 
             val bouncySearchScale by animateFloatAsState(
@@ -1307,13 +1298,16 @@ fun SongApp(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
+                    .width(animatedSearchWidth)
                     .then(
-                        if (isSearchCollapsed) Modifier.size(animatedSearchWidth, animatedSearchHeight)
-                        else Modifier.width(animatedSearchWidth)
+                        if (active) Modifier.wrapContentHeight()
+                        else Modifier.height(56.dp)
                     )
                     .graphicsLayer {
                         scaleX = bouncySearchScale
                         scaleY = bouncySearchScale
+                        clip = true
+                        shape = RoundedCornerShape(28.dp)
                     }
                     .glassOverlay(cornerRadius = 28)
                     .pointerInput(Unit) {
@@ -1326,7 +1320,6 @@ fun SongApp(
                             onTap = {
                                 if (isSearchCollapsed) {
                                     isNavCollapsed = false
-                                    active = true
                                 }
                             }
                         )
@@ -1336,19 +1329,21 @@ fun SongApp(
                 AnimatedContent(
                     targetState = isSearchCollapsed,
                     transitionSpec = {
-                        (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.75f))
-                            .togetherWith(fadeOut(animationSpec = tween(180)) + scaleOut(targetScale = 0.75f))
+                        if (targetState) {
+                            // Collapsing into top-right circle icon
+                            (fadeIn(animationSpec = tween(180, delayMillis = 60)) + scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)))
+                                .togetherWith(fadeOut(animationSpec = tween(120)) + scaleOut(targetScale = 0.85f, animationSpec = tween(120)))
+                        } else {
+                            // Uncollapsing into normal resting search bar
+                            (fadeIn(animationSpec = tween(180, delayMillis = 60)) + scaleIn(initialScale = 0.85f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)))
+                                .togetherWith(fadeOut(animationSpec = tween(120)) + scaleOut(targetScale = 0.8f, animationSpec = tween(120)))
+                        }
                     },
                     label = "searchMorph"
                 ) { collapsed ->
                     if (collapsed) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .bouncyClick {
-                                    isNavCollapsed = false
-                                    active = true
-                                },
+                            modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -1382,9 +1377,7 @@ fun SongApp(
                                         onClick = {
                                             if (query.isNotEmpty()) query = "" else active = false
                                         },
-                                        modifier = Modifier.bouncyClick {
-                                            if (query.isNotEmpty()) query = "" else active = false
-                                        }
+                                        modifier = Modifier.bouncyClick()
                                     ) {
                                         Icon(Icons.Default.Close, contentDescription = "Clear")
                                     }
@@ -1430,7 +1423,7 @@ fun SongApp(
                                         }
                                         IconButton(
                                             onClick = { showEditor = true },
-                                            modifier = Modifier.bouncyClick { showEditor = true }
+                                            modifier = Modifier.bouncyClick()
                                         ) {
                                             Icon(Icons.Default.Add, contentDescription = "Add Custom Song", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
@@ -1442,7 +1435,7 @@ fun SongApp(
                                                     val size = it.size
                                                     themeButtonCenter = Offset(rootPos.x + size.width / 2f, rootPos.y + size.height / 2f)
                                                 }
-                                                .bouncyClick { onThemeCycle(themeButtonCenter) },
+                                                .bouncyClick(),
                                             onClick = { onThemeCycle(themeButtonCenter) }
                                         ) {
                                             Icon(
@@ -1453,7 +1446,7 @@ fun SongApp(
                                         }
                                         IconButton(
                                             onClick = { showInfoDialog = true },
-                                            modifier = Modifier.bouncyClick { showInfoDialog = true }
+                                            modifier = Modifier.bouncyClick()
                                         ) {
                                             Icon(Icons.Default.Info, contentDescription = "Developer Info", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
