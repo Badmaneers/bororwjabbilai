@@ -80,6 +80,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.PI
+import kotlin.math.sin
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
@@ -123,6 +125,50 @@ fun SongApp(
     var showFilterSheet by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
     var updateRelease by remember { mutableStateOf<com.heliactyl.bororwjabbilai.GitHubRelease?>(null) }
+
+    var isNavCollapsed by remember { mutableStateOf(false) }
+
+    val activeListState = when (pagerState.currentPage) {
+        0 -> favoritesListState
+        1 -> homeListState
+        else -> recentsListState
+    }
+
+    LaunchedEffect(activeListState) {
+        var prevIndex = activeListState.firstVisibleItemIndex
+        var prevOffset = activeListState.firstVisibleItemScrollOffset
+
+        snapshotFlow { activeListState.firstVisibleItemIndex to activeListState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                if (index > prevIndex || (index == prevIndex && offset > prevOffset + 25)) {
+                    if (index > 0 || offset > 100) {
+                        isNavCollapsed = true
+                    }
+                } else if (index < prevIndex || (index == prevIndex && offset < prevOffset - 25) || (index == 0 && offset < 50)) {
+                    isNavCollapsed = false
+                }
+                prevIndex = index
+                prevOffset = offset
+            }
+    }
+
+    val animatedNavWidth by animateDpAsState(
+        targetValue = if (isNavCollapsed) 64.dp else 320.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "navWidth"
+    )
+
+    val animatedNavHeight by animateDpAsState(
+        targetValue = if (isNavCollapsed) 64.dp else 72.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "navHeight"
+    )
 
     var query by rememberSaveable { mutableStateOf("") }
     var active by rememberSaveable { mutableStateOf(false) }
@@ -915,133 +961,153 @@ fun SongApp(
                         }
                     }
 
-                    // Floating Bottom Bar — fixed overlay OUTSIDE layerBackdrop,
-                    // so true backdrop-sampled glass is safe here.
+                    // Floating Liquid Bottom Bar
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(16.dp)
+                            .padding(bottom = 16.dp)
                             .navigationBarsPadding()
+                            .size(animatedNavWidth, animatedNavHeight)
                             .glassOverlay(cornerRadius = 32)
+                            .bouncyClick(
+                                onClick = {
+                                    if (isNavCollapsed) {
+                                        isNavCollapsed = false
+                                    }
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        // Glassy Pill Indicator
-                        val continuousPage = pagerState.currentPage + pagerState.currentPageOffsetFraction
-                        
-                        // Bubble dimensions (matching filter tab style)
-                        val baseWidth = 100.dp
-                        val bubbleHeight = 56.dp
-                        
-                        Box(Modifier.fillMaxWidth().height(80.dp)) { 
-                            val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-                            
-                            BoxWithConstraints(Modifier.fillMaxSize()) {
-                                val totalWidthPx = with(LocalDensity.current) { this@BoxWithConstraints.maxWidth.toPx() }
-                                val slotWidthPx = totalWidthPx / 3f
-                                
-                                val targetCenterPx = (continuousPage + 0.5f) * slotWidthPx
-                                
-                                // Organic sine-stretch while sliding
-                                val pageIndex = continuousPage.toInt()
-                                val fraction = continuousPage - pageIndex
-                                val stretchProgress = kotlin.math.sin(fraction * kotlin.math.PI.toFloat())
-                                val maxStretch = 40.dp
-                                val dynamicWidth = baseWidth + (maxStretch * stretchProgress)
-                                
-                                val bubbleWidthPx = with(LocalDensity.current) { dynamicWidth.toPx() }
-                                val bubbleOffsetPx = targetCenterPx - (bubbleWidthPx / 2f)
-                                
+                        AnimatedContent(
+                            targetState = isNavCollapsed,
+                            transitionSpec = {
+                                (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.75f))
+                                    .togetherWith(fadeOut(animationSpec = tween(180)) + scaleOut(targetScale = 0.75f))
+                            },
+                            label = "navMorph"
+                        ) { collapsed ->
+                            if (collapsed) {
+                                // Single Liquid Bouncy Icon (Collapsed)
+                                val currentIcon = when (pagerState.currentPage) {
+                                    0 -> Icons.Default.Favorite
+                                    1 -> Icons.Default.Home
+                                    else -> Icons.Default.History
+                                }
                                 Box(
-                                    Modifier
-                                        .offset { IntOffset(bubbleOffsetPx.roundToInt(), 0) }
-                                        .align(Alignment.CenterStart)
-                                        .size(dynamicWidth, bubbleHeight)
-                                        .zIndex(0f)
-                                        .clip(RoundedCornerShape(22.dp))
-                                        .background(
-                                            if (isDark) Color.White.copy(alpha = 0.12f)
-                                            else Color.White.copy(alpha = 0.90f)
-                                        )
-                                        .liquidGlass(
-                                            cornerRadius = 22, 
-                                            color = Color.Transparent, 
-                                            blurRadius = 22f,
-                                            borderWidth = if (isDark) 1f else 1.8f
-                                        )
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    // Top specular highlight
-                                    Box(
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .fillMaxHeight(0.40f)
-                                            .align(Alignment.TopCenter)
-                                            .background(
-                                                Brush.verticalGradient(
-                                                    colors = listOf(
-                                                        Color.White.copy(alpha = if (isDark) 0.25f else 0.40f),
-                                                        Color.Transparent
-                                                    )
-                                                )
-                                            )
+                                    Icon(
+                                        imageVector = currentIcon,
+                                        contentDescription = "Expand Navigation Bar",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(28.dp)
                                     )
+                                }
+                            } else {
+                                // Expanded 3-Tab Bar
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    val continuousPage = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                                    val baseWidth = 90.dp
+                                    val bubbleHeight = 52.dp
+
+                                    Box(Modifier.fillMaxSize()) {
+                                        val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+
+                                        BoxWithConstraints(Modifier.fillMaxSize()) {
+                                            val totalWidthPx = with(LocalDensity.current) { this@BoxWithConstraints.maxWidth.toPx() }
+                                            val slotWidthPx = totalWidthPx / 3f
+
+                                            val targetCenterPx = (continuousPage + 0.5f) * slotWidthPx
+
+                                            val pageIndex = continuousPage.toInt()
+                                            val fraction = continuousPage - pageIndex
+                                            val stretchProgress = sin(fraction * PI.toFloat())
+                                            val maxStretch = 30.dp
+                                            val dynamicWidth = baseWidth + (maxStretch * stretchProgress)
+
+                                            val bubbleWidthPx = with(LocalDensity.current) { dynamicWidth.toPx() }
+                                            val bubbleOffsetPx = targetCenterPx - (bubbleWidthPx / 2f)
+
+                                            Box(
+                                                Modifier
+                                                    .offset { IntOffset(bubbleOffsetPx.roundToInt(), 0) }
+                                                    .align(Alignment.CenterStart)
+                                                    .size(dynamicWidth, bubbleHeight)
+                                                    .zIndex(0f)
+                                                    .clip(RoundedCornerShape(22.dp))
+                                                    .background(
+                                                        if (isDark) Color.White.copy(alpha = 0.12f)
+                                                        else Color.White.copy(alpha = 0.90f)
+                                                    )
+                                                    .liquidGlass(
+                                                        cornerRadius = 22,
+                                                        color = Color.Transparent,
+                                                        blurRadius = 22f,
+                                                        borderWidth = if (isDark) 1f else 1.8f
+                                                    )
+                                            )
+                                        }
+                                    }
+
+                                    NavigationBar(
+                                        containerColor = Color.Transparent,
+                                        tonalElevation = 0.dp,
+                                        modifier = Modifier.zIndex(1f)
+                                    ) {
+                                        val navItemColors = NavigationBarItemDefaults.colors(
+                                            indicatorColor = Color.Transparent,
+                                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        )
+
+                                        NavigationBarItem(
+                                            icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
+                                            label = { Text("Saved") },
+                                            selected = pagerState.currentPage == 0,
+                                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
+                                            colors = navItemColors
+                                        )
+                                        NavigationBarItem(
+                                            icon = {
+                                                Icon(
+                                                    Icons.Default.Home,
+                                                    contentDescription = "Home",
+                                                    modifier = Modifier.pointerInput(Unit) {
+                                                        detectVerticalDragGestures(
+                                                            onDragEnd = { },
+                                                            onDragCancel = { }
+                                                        ) { change, dragAmount ->
+                                                            if (dragAmount < -10) {
+                                                                showFilterSheet = true
+                                                                if (!hasSeenSwipeTutorial) {
+                                                                    hasSeenSwipeTutorial = true
+                                                                    prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                                                }
+                                                                change.consume()
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                            },
+                                            label = { Text("Home") },
+                                            selected = pagerState.currentPage == 1,
+                                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
+                                            colors = navItemColors
+                                        )
+                                        NavigationBarItem(
+                                            icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
+                                            label = { Text("Recents") },
+                                            selected = pagerState.currentPage == 2,
+                                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } },
+                                            colors = navItemColors
+                                        )
+                                    }
                                 }
                             }
                         }
-
-                        NavigationBar(
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            modifier = Modifier.zIndex(1f)
-                        ) {
-                                val navItemColors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = Color.Transparent,
-                                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-
-                                NavigationBarItem(
-                                    icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
-                                    label = { Text("Saved") },
-                                    selected = pagerState.currentPage == 0,
-                                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
-                                    colors = navItemColors
-                                )
-                                NavigationBarItem(
-                                    icon = {
-                                        Icon(
-                                            Icons.Default.Home,
-                                            contentDescription = "Home",
-                                            modifier = Modifier.pointerInput(Unit) {
-                                                detectVerticalDragGestures(
-                                                    onDragEnd = { /* Interaction handled by click */ },
-                                                    onDragCancel = { /* Interaction handled by click */ }
-                                                ) { change, dragAmount ->
-                                                    if (dragAmount < -10) {
-                                                        showFilterSheet = true
-                                                        if (!hasSeenSwipeTutorial) {
-                                                            hasSeenSwipeTutorial = true
-                                                            prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
-                                                        }
-                                                        change.consume()
-                                                    }
-                                                }
-                                            }
-                                        )
-                                    },
-                                    label = { Text("Home") },
-                                    selected = pagerState.currentPage == 1,
-                                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
-                                    colors = navItemColors
-                                )
-                                NavigationBarItem(
-                                    icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
-                                    label = { Text("Recents") },
-                                    selected = pagerState.currentPage == 2,
-                                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } },
-                                    colors = navItemColors
-                                )
-                            }
                     }
 
                     // Swipe-up tutorial hint
