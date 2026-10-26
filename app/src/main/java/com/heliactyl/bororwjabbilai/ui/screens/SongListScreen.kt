@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
 import com.heliactyl.bororwjabbilai.ui.Occasion
 import com.heliactyl.bororwjabbilai.ui.components.SongItem
@@ -82,9 +81,9 @@ fun SongListScreen(
         }
     }
 
-    fun getSnippet(lyrics: List<LyricSection>, queryStr: String): String? {
+    fun getSnippet(song: Song, queryStr: String): String? {
         if (queryStr.length < 2) return null
-        val plainText = lyrics.flatMap { it.lines }.joinToString(" ")
+        val plainText = song.searchLyricsText
         val index = plainText.indexOf(queryStr, ignoreCase = true)
         if (index == -1) return null
         
@@ -138,7 +137,7 @@ fun SongListScreen(
                 SongItem(
                     song = song, 
                     isFavorite = song.id in favoriteSet,
-                    snippet = if (query.isNotBlank()) getSnippet(song.lyrics, query) else null,
+                    snippet = if (query.isNotBlank()) getSnippet(song, query) else null,
                     onFavoriteClick = { onFavoriteClick(song) },
                     onClick = { onSongClick(song) }
                 )

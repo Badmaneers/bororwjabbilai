@@ -102,17 +102,25 @@ val LocalAppBackdrop = staticCompositionLocalOf<Backdrop?> { null }
  * (SIGSEGV, 512 prepareTree frames). Edge refraction/highlight/shadow add
  * extra layers, so they are skipped there — blur + tint only.
  */
-fun isMiuiEdgeEffectRisk(): Boolean = try {
-    val cls = Class.forName("android.os.SystemProperties")
-    val get = cls.getMethod("get", String::class.java, String::class.java)
-    val miui = (get.invoke(null, "ro.miui.ui.version.name", "") as? String).orEmpty()
-    val hyper = (get.invoke(null, "ro.mi.os.version.name", "") as? String).orEmpty()
-    val man = Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true) ||
-        Build.MANUFACTURER.equals("POCO", ignoreCase = true) ||
-        Build.MANUFACTURER.equals("Redmi", ignoreCase = true)
-    miui.isNotEmpty() || hyper.isNotEmpty() || man
-} catch (_: Exception) {
-    false
+/**
+ * True on HyperOS/MIUI devices the system's MiBackgroundBlurBlend pass
+ * recurses over nested offscreen layers until RenderThread stack overflow
+ * (SIGSEGV, 512 prepareTree frames). Edge refraction/highlight/shadow add
+ * extra layers, so they are skipped there — blur + tint only.
+ */
+val isMiuiEdgeEffectRisk: Boolean by lazy {
+    try {
+        val cls = Class.forName("android.os.SystemProperties")
+        val get = cls.getMethod("get", String::class.java, String::class.java)
+        val miui = (get.invoke(null, "ro.miui.ui.version.name", "") as? String).orEmpty()
+        val hyper = (get.invoke(null, "ro.mi.os.version.name", "") as? String).orEmpty()
+        val man = Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true) ||
+            Build.MANUFACTURER.equals("POCO", ignoreCase = true) ||
+            Build.MANUFACTURER.equals("Redmi", ignoreCase = true)
+        miui.isNotEmpty() || hyper.isNotEmpty() || man
+    } catch (_: Exception) {
+        false
+    }
 }
 
 /**
@@ -147,7 +155,7 @@ fun Modifier.trueLiquidGlass(
 
     val backdrop = LocalAppBackdrop.current ?: return this
     // HyperOS/MIUI: skip lens + highlight + shadow layers (stack overflow).
-    val safeEdgeEffects = applyEdgeEffects && !isMiuiEdgeEffectRisk()
+    val safeEdgeEffects = applyEdgeEffects && !isMiuiEdgeEffectRisk
     val density = LocalDensity.current
     val scale = glassResolutionScale(blurRadiusDp)
     val blurPx = with(density) { blurRadiusDp.dp.toPx() } * scale

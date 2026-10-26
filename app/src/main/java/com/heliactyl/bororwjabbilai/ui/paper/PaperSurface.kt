@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -95,6 +96,7 @@ fun PaperSurfaceCanvas(
     val colors = PaperTheme.colors
 
     if (style == PaperSurfaceStyle.RULED) {
+        val dashPathEffect = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f) }
         Canvas(modifier = modifier) {
             val topPaddingPx = topPadding.toPx()
             val lineSpacingPx = lineSpacing.toPx()
@@ -109,7 +111,7 @@ fun PaperSurfaceCanvas(
                     start = Offset(0f, y),
                     end = Offset(size.width, y),
                     strokeWidth = strokeWidth,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
+                    pathEffect = dashPathEffect
                 )
             }
 

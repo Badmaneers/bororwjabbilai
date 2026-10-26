@@ -111,9 +111,8 @@ fun SongApp(
     var songs by remember { mutableStateOf(emptyList<Song>()) }
     var customSongs by remember { mutableStateOf(customSongRepository.getCustomSongs()) }
 
-    val allSongs by remember(songs, customSongs) {
-        derivedStateOf { songs + customSongs }
-    }
+    val allSongs = remember(songs, customSongs) { songs + customSongs }
+    val songMap = remember(allSongs) { allSongs.associateBy { it.id } }
 
     var recentIds by remember { mutableStateOf(recentsRepository.getRecentIds()) }
     var favoriteIds by remember { mutableStateOf(favoritesRepository.getFavoriteIds()) }
@@ -149,11 +148,13 @@ fun SongApp(
         snapshotFlow { activeListState.firstVisibleItemIndex to activeListState.firstVisibleItemScrollOffset }
             .collect { (index, offset) ->
                 if (index > prevIndex || (index == prevIndex && offset > prevOffset + 25)) {
-                    if (index > 0 || offset > 100) {
+                    if ((index > 0 || offset > 100) && !isNavCollapsed) {
                         isNavCollapsed = true
                     }
                 } else if (index < prevIndex || (index == prevIndex && offset < prevOffset - 25) || (index == 0 && offset < 50)) {
-                    isNavCollapsed = false
+                    if (isNavCollapsed) {
+                        isNavCollapsed = false
+                    }
                 }
                 prevIndex = index
                 prevOffset = offset
@@ -474,7 +475,7 @@ fun SongApp(
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                val chars = ('A'..'Z').map { it.toString() } + "@"
+                                val chars = remember { ('A'..'Z').map { it.toString() } + "@" }
                                 FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -914,8 +915,8 @@ fun SongApp(
                         val screenPadding = PaddingValues(top = topBarHeight, bottom = bottomBarHeight)
                         when (page) {
                             0 -> {
-                                val favoriteSongs = remember(allSongs, favoriteIds) {
-                                    allSongs.filter { it.id in favoriteIds }
+                                val favoriteSongs = remember(songMap, favoriteIds) {
+                                    favoriteIds.mapNotNull { songMap[it] }
                                 }
                                 SongListScreen(
                                     songs = favoriteSongs,
@@ -970,9 +971,8 @@ fun SongApp(
                                 )
                             }
                             2 -> {
-                                val recentSongs = remember(allSongs, recentIds) {
-                                    val recentMap = recentIds.mapIndexed { index, id -> id to index }.toMap()
-                                    allSongs.filter { it.id in recentMap }.sortedBy { recentMap[it.id] }
+                                val recentSongs = remember(songMap, recentIds) {
+                                    recentIds.mapNotNull { songMap[it] }
                                 }
                                 SongListScreen(
                                     songs = recentSongs,
