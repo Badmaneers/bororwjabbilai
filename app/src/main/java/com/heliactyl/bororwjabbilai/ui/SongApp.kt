@@ -5,7 +5,10 @@ import android.net.Uri
 import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import com.heliactyl.bororwjabbilai.ui.paper.PaperSurfaceStyle
+import com.heliactyl.bororwjabbilai.ui.paper.paperSurface
 import com.heliactyl.bororwjabbilai.ui.paper.showcase.PaperThemeShowcaseScreen
+import com.heliactyl.bororwjabbilai.ui.theme.paper.PaperTheme
 import androidx.core.content.edit
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -13,6 +16,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -37,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -168,6 +173,31 @@ fun SongApp(
             stiffness = Spring.StiffnessLow
         ),
         label = "navHeight"
+    )
+
+    var pullUpOffset by remember { mutableFloatStateOf(0f) }
+
+    val animatedPullUpOffset by animateFloatAsState(
+        targetValue = pullUpOffset,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioHighBouncy,
+            stiffness = Spring.StiffnessVeryLow
+        ),
+        label = "pullUpOffset"
+    )
+
+    val rubberBandStretchX = 1f + (animatedPullUpOffset / 220f)
+    val rubberBandStretchY = (1f - (animatedPullUpOffset / 400f)).coerceAtLeast(0.8f)
+
+    var isNavPressed by remember { mutableStateOf(false) }
+
+    val bouncyNavScale by animateFloatAsState(
+        targetValue = if (isNavPressed) 0.90f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioHighBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "bouncyNavScale"
     )
 
     var query by rememberSaveable { mutableStateOf("") }
@@ -967,31 +997,59 @@ fun SongApp(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = 16.dp)
+                                .offset { IntOffset(0, -animatedPullUpOffset.roundToInt()) }
+                                .graphicsLayer {
+                                    scaleX = rubberBandStretchX * bouncyNavScale
+                                    scaleY = rubberBandStretchY * bouncyNavScale
+                                }
                                 .navigationBarsPadding()
                                 .size(animatedNavWidth, animatedNavHeight)
                                 .glassOverlay(cornerRadius = 32)
                                 .pointerInput(Unit) {
-                                    detectVerticalDragGestures(
-                                        onDragEnd = { },
-                                        onDragCancel = { }
-                                    ) { change, dragAmount ->
-                                        if (dragAmount < -10 && pagerState.currentPage == 1) {
-                                            showFilterSheet = true
-                                            if (!hasSeenSwipeTutorial) {
-                                                hasSeenSwipeTutorial = true
-                                                prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                    detectTapGestures(
+                                        onPress = {
+                                            isNavPressed = true
+                                            tryAwaitRelease()
+                                            isNavPressed = false
+                                        },
+                                        onTap = {
+                                            if (isNavCollapsed) {
+                                                isNavCollapsed = false
                                             }
-                                            change.consume()
                                         }
-                                    }
+                                    )
                                 }
-                                .bouncyClick(
-                                    onClick = {
-                                        if (isNavCollapsed) {
-                                            isNavCollapsed = false
+                                .pointerInput(Unit) {
+                                    detectVerticalDragGestures(
+                                        onDragStart = {
+                                            isNavPressed = true
+                                            pullUpOffset = 0f
+                                        },
+                                        onDragEnd = {
+                                            isNavPressed = false
+                                            pullUpOffset = 0f
+                                        },
+                                        onDragCancel = {
+                                            isNavPressed = false
+                                            pullUpOffset = 0f
+                                        }
+                                    ) { change, dragAmount ->
+                                        if (pagerState.currentPage == 1) {
+                                            if (dragAmount < 0) {
+                                                pullUpOffset = (pullUpOffset - dragAmount * 0.6f).coerceIn(0f, 60f)
+                                                if (pullUpOffset > 30f && !showFilterSheet) {
+                                                    showFilterSheet = true
+                                                    pullUpOffset = 0f
+                                                    if (!hasSeenSwipeTutorial) {
+                                                        hasSeenSwipeTutorial = true
+                                                        prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                                    }
+                                                }
+                                                change.consume()
+                                            }
                                         }
                                     }
-                                ),
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             AnimatedContent(
@@ -1010,35 +1068,44 @@ fun SongApp(
                                         else -> Icons.Default.History
                                     }
                                     Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .pointerInput(Unit) {
-                                                detectVerticalDragGestures(
-                                                    onDragEnd = { },
-                                                    onDragCancel = { }
-                                                ) { change, dragAmount ->
-                                                    if (dragAmount < -10 && pagerState.currentPage == 1) {
-                                                        showFilterSheet = true
-                                                        if (!hasSeenSwipeTutorial) {
-                                                            hasSeenSwipeTutorial = true
-                                                            prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
-                                                        }
-                                                        change.consume()
-                                                    }
-                                                }
-                                            },
+                                        modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = currentIcon,
                                             contentDescription = "Expand Navigation Bar",
-                                            tint = MaterialTheme.colorScheme.primary,
+                                            tint = PaperTheme.colors.accentInk,
                                             modifier = Modifier.size(28.dp)
                                         )
                                     }
                                 } else {
                                 // Expanded 3-Tab Bar
-                                Box(modifier = Modifier.fillMaxSize()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .pointerInput(Unit) {
+                                            detectVerticalDragGestures(
+                                                onDragStart = { pullUpOffset = 0f },
+                                                onDragEnd = { pullUpOffset = 0f },
+                                                onDragCancel = { pullUpOffset = 0f }
+                                            ) { change, dragAmount ->
+                                                if (pagerState.currentPage == 1) {
+                                                    if (dragAmount < 0) {
+                                                        pullUpOffset = (pullUpOffset - dragAmount * 0.6f).coerceIn(0f, 60f)
+                                                        if (pullUpOffset > 30f && !showFilterSheet) {
+                                                            showFilterSheet = true
+                                                            pullUpOffset = 0f
+                                                            if (!hasSeenSwipeTutorial) {
+                                                                hasSeenSwipeTutorial = true
+                                                                prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                                            }
+                                                        }
+                                                        change.consume()
+                                                    }
+                                                }
+                                            }
+                                        }
+                                ) {
                                     val continuousPage = pagerState.currentPage + pagerState.currentPageOffsetFraction
                                     val baseWidth = 90.dp
                                     val bubbleHeight = 52.dp
@@ -1096,7 +1163,15 @@ fun SongApp(
                                         )
 
                                         NavigationBarItem(
-                                            icon = { Icon(Icons.Default.Favorite, contentDescription = "Saved") },
+                                            icon = {
+                                                Icon(
+                                                    Icons.Default.Favorite,
+                                                    contentDescription = "Saved",
+                                                    modifier = Modifier.bouncyClick {
+                                                        coroutineScope.launch { pagerState.animateScrollToPage(0) }
+                                                    }
+                                                )
+                                            },
                                             label = { Text("Saved") },
                                             selected = pagerState.currentPage == 0,
                                             onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
@@ -1107,20 +1182,8 @@ fun SongApp(
                                                 Icon(
                                                     Icons.Default.Home,
                                                     contentDescription = "Home",
-                                                    modifier = Modifier.pointerInput(Unit) {
-                                                        detectVerticalDragGestures(
-                                                            onDragEnd = { },
-                                                            onDragCancel = { }
-                                                        ) { change, dragAmount ->
-                                                            if (dragAmount < -10 && pagerState.currentPage == 1) {
-                                                                showFilterSheet = true
-                                                                if (!hasSeenSwipeTutorial) {
-                                                                    hasSeenSwipeTutorial = true
-                                                                    prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
-                                                                }
-                                                                change.consume()
-                                                            }
-                                                        }
+                                                    modifier = Modifier.bouncyClick {
+                                                        coroutineScope.launch { pagerState.animateScrollToPage(1) }
                                                     }
                                                 )
                                             },
@@ -1130,7 +1193,15 @@ fun SongApp(
                                             colors = navItemColors
                                         )
                                         NavigationBarItem(
-                                            icon = { Icon(Icons.Default.History, contentDescription = "Recents") },
+                                            icon = {
+                                                Icon(
+                                                    Icons.Default.History,
+                                                    contentDescription = "Recents",
+                                                    modifier = Modifier.bouncyClick {
+                                                        coroutineScope.launch { pagerState.animateScrollToPage(2) }
+                                                    }
+                                                )
+                                            },
                                             label = { Text("Recents") },
                                             selected = pagerState.currentPage == 2,
                                             onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } },
