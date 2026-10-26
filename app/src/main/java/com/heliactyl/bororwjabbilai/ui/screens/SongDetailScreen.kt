@@ -75,6 +75,7 @@ import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
 import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
 import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
+import com.heliactyl.bororwjabbilai.ui.theme.PencilPeteFontFamily
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -551,7 +552,10 @@ fun LyricSectionItem(
         if (isChorus) {
             Text(
                 text = "Chorus",
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = (fontSize - 2).sp),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = (fontSize - 2).sp,
+                    fontFamily = PencilPeteFontFamily
+                ),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 fontStyle = FontStyle.Italic,
@@ -572,7 +576,10 @@ fun LyricSectionItem(
                     if (numberPrefix.isNotEmpty()) {
                         Text(
                             text = numberPrefix,
-                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize.sp),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = fontSize.sp,
+                                fontFamily = PencilPeteFontFamily
+                            ),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -581,9 +588,11 @@ fun LyricSectionItem(
                         text = line,
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = fontSize.sp,
+                            fontFamily = PencilPeteFontFamily,
                             fontStyle = if (isChorus) FontStyle.Italic else FontStyle.Normal,
                             lineHeight = (fontSize * 1.45f).sp
                         ),
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
