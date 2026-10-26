@@ -1284,17 +1284,6 @@ fun SongApp(
                 label = "searchWidth"
             )
 
-            var isSearchPressed by remember { mutableStateOf(false) }
-
-            val bouncySearchScale by animateFloatAsState(
-                targetValue = if (isSearchPressed) 0.90f else 1.0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioHighBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                label = "bouncySearchScale"
-            )
-
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -1304,26 +1293,10 @@ fun SongApp(
                         else Modifier.height(56.dp)
                     )
                     .graphicsLayer {
-                        scaleX = bouncySearchScale
-                        scaleY = bouncySearchScale
                         clip = true
                         shape = RoundedCornerShape(28.dp)
                     }
-                    .glassOverlay(cornerRadius = 28)
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onPress = {
-                                isSearchPressed = true
-                                tryAwaitRelease()
-                                isSearchPressed = false
-                            },
-                            onTap = {
-                                if (isSearchCollapsed) {
-                                    isNavCollapsed = false
-                                }
-                            }
-                        )
-                    },
+                    .glassOverlay(cornerRadius = 28),
                 contentAlignment = Alignment.Center
             ) {
                 AnimatedContent(
@@ -1343,7 +1316,11 @@ fun SongApp(
                 ) { collapsed ->
                     if (collapsed) {
                         Box(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .bouncyClick {
+                                    isNavCollapsed = false
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
