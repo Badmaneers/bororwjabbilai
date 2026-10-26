@@ -962,49 +962,81 @@ fun SongApp(
                     }
 
                     // Floating Liquid Bottom Bar
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 16.dp)
-                            .navigationBarsPadding()
-                            .size(animatedNavWidth, animatedNavHeight)
-                            .glassOverlay(cornerRadius = 32)
-                            .bouncyClick(
-                                onClick = {
-                                    if (isNavCollapsed) {
-                                        isNavCollapsed = false
+                    if (!showEditor && selectedSong == null) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 16.dp)
+                                .navigationBarsPadding()
+                                .size(animatedNavWidth, animatedNavHeight)
+                                .glassOverlay(cornerRadius = 32)
+                                .pointerInput(Unit) {
+                                    detectVerticalDragGestures(
+                                        onDragEnd = { },
+                                        onDragCancel = { }
+                                    ) { change, dragAmount ->
+                                        if (dragAmount < -10 && pagerState.currentPage == 1) {
+                                            showFilterSheet = true
+                                            if (!hasSeenSwipeTutorial) {
+                                                hasSeenSwipeTutorial = true
+                                                prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                            }
+                                            change.consume()
+                                        }
                                     }
                                 }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AnimatedContent(
-                            targetState = isNavCollapsed,
-                            transitionSpec = {
-                                (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.75f))
-                                    .togetherWith(fadeOut(animationSpec = tween(180)) + scaleOut(targetScale = 0.75f))
-                            },
-                            label = "navMorph"
-                        ) { collapsed ->
-                            if (collapsed) {
-                                // Single Liquid Bouncy Icon (Collapsed)
-                                val currentIcon = when (pagerState.currentPage) {
-                                    0 -> Icons.Default.Favorite
-                                    1 -> Icons.Default.Home
-                                    else -> Icons.Default.History
-                                }
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = currentIcon,
-                                        contentDescription = "Expand Navigation Bar",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                }
-                            } else {
+                                .bouncyClick(
+                                    onClick = {
+                                        if (isNavCollapsed) {
+                                            isNavCollapsed = false
+                                        }
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AnimatedContent(
+                                targetState = isNavCollapsed,
+                                transitionSpec = {
+                                    (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.75f))
+                                        .togetherWith(fadeOut(animationSpec = tween(180)) + scaleOut(targetScale = 0.75f))
+                                },
+                                label = "navMorph"
+                            ) { collapsed ->
+                                if (collapsed) {
+                                    // Single Liquid Bouncy Icon (Collapsed)
+                                    val currentIcon = when (pagerState.currentPage) {
+                                        0 -> Icons.Default.Favorite
+                                        1 -> Icons.Default.Home
+                                        else -> Icons.Default.History
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .pointerInput(Unit) {
+                                                detectVerticalDragGestures(
+                                                    onDragEnd = { },
+                                                    onDragCancel = { }
+                                                ) { change, dragAmount ->
+                                                    if (dragAmount < -10 && pagerState.currentPage == 1) {
+                                                        showFilterSheet = true
+                                                        if (!hasSeenSwipeTutorial) {
+                                                            hasSeenSwipeTutorial = true
+                                                            prefs.edit().putBoolean("has_seen_swipe_tutorial", true).apply()
+                                                        }
+                                                        change.consume()
+                                                    }
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = currentIcon,
+                                            contentDescription = "Expand Navigation Bar",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    }
+                                } else {
                                 // Expanded 3-Tab Bar
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     val continuousPage = pagerState.currentPage + pagerState.currentPageOffsetFraction
@@ -1080,7 +1112,7 @@ fun SongApp(
                                                             onDragEnd = { },
                                                             onDragCancel = { }
                                                         ) { change, dragAmount ->
-                                                            if (dragAmount < -10) {
+                                                            if (dragAmount < -10 && pagerState.currentPage == 1) {
                                                                 showFilterSheet = true
                                                                 if (!hasSeenSwipeTutorial) {
                                                                     hasSeenSwipeTutorial = true
@@ -1142,6 +1174,7 @@ fun SongApp(
                 }
             }
         }
+    }
 
         // 1.2 SEARCH SCRIM — while search is open the blurred page must not
         // receive touches; tapping outside dismisses search instead.
