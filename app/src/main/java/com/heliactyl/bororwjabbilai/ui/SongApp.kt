@@ -5,6 +5,7 @@ import android.net.Uri
 import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import com.heliactyl.bororwjabbilai.ui.paper.showcase.PaperThemeShowcaseScreen
 import androidx.core.content.edit
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -71,6 +72,7 @@ import com.heliactyl.bororwjabbilai.ui.glass.LocalGlassEffectConfig
 import com.heliactyl.bororwjabbilai.ui.glass.backdrop.backdrops.layerBackdrop
 import com.heliactyl.bororwjabbilai.ui.glass.backdrop.backdrops.rememberLayerBackdrop
 import com.heliactyl.bororwjabbilai.ui.occasionFilters
+import com.heliactyl.bororwjabbilai.ui.paper.showcase.PaperThemeShowcaseScreen
 import com.heliactyl.bororwjabbilai.ui.screens.SongDetailScreen
 import com.heliactyl.bororwjabbilai.ui.screens.SongListScreen
 import kotlin.math.roundToInt
@@ -87,7 +89,9 @@ fun SongApp(
     recentsRepository: RecentsRepository,
     favoritesRepository: FavoritesRepository,
     isDarkTheme: Boolean,
-    onThemeCycle: (Offset) -> Unit
+    themeMode: Int = 0,
+    onThemeCycle: (Offset) -> Unit,
+    onThemeSelect: (Int, Offset) -> Unit = { _, offset -> onThemeCycle(offset) },
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -1272,5 +1276,5 @@ fun SongApp(
             )
         }
     }
-    }
+}
 }

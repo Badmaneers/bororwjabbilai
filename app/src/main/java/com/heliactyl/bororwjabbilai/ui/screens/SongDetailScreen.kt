@@ -14,8 +14,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,18 +76,20 @@ import com.heliactyl.bororwjabbilai.LyricSection
 import com.heliactyl.bororwjabbilai.Song
 import com.heliactyl.bororwjabbilai.ui.components.bouncyClick
 import com.heliactyl.bororwjabbilai.ui.components.liquidGlass
+import com.heliactyl.bororwjabbilai.ui.paper.PaperSurfaceCanvas
+import com.heliactyl.bororwjabbilai.ui.paper.PaperSurfaceStyle
 import com.heliactyl.bororwjabbilai.ui.theme.PencilPeteFontFamily
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlin.math.abs
+import kotlin.math.sqrt
 
 fun shareLyrics(context: Context, song: Song, textToShare: String? = null) {
     val shareText = if (textToShare != null) {
         "\"$textToShare\"\n\n— From: ${song.title}"
     } else {
         if (song.isCustom) {
-            // Sharing custom song code
             val repo = CustomSongRepository(context)
             val code = repo.exportSongAsCode(song)
             "Custom Song: ${song.title}\n\nImport this song into Boro Rwjab Bilai app using this code:\n\n$code"
@@ -115,8 +118,15 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
     
     var keepScreenOn by remember { mutableStateOf(prefs.getBoolean("keep_screen_on", false)) }
     var fontSize by remember { mutableFloatStateOf(prefs.getFloat("font_size", 18f)) }
+    var paperStyleName by remember { mutableStateOf(prefs.getString("paper_style", "ruled") ?: "ruled") }
 
-    // Two-finger pinch HUD: bumped on every applied zoom tick.
+    val paperSurfaceStyle = when (paperStyleName) {
+        "flat" -> PaperSurfaceStyle.FLAT
+        else -> PaperSurfaceStyle.RULED
+    }
+
+    val rowHeight = (fontSize * 1.55f).dp
+
     var showPinchHud by remember { mutableStateOf(false) }
     var hudTick by remember { mutableIntStateOf(0) }
 
@@ -128,7 +138,6 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
         }
     }
 
-    // Settle-write the size once pinch/button changes stop landing.
     LaunchedEffect(fontSize) {
         delay(300)
         prefs.edit { putFloat("font_size", fontSize) }
@@ -342,7 +351,6 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                                     horizontalArrangement = Arrangement.SpaceBetween,
                                                     modifier = Modifier.fillMaxWidth()
                                                 ) {
-                                                    // Bouncy A- button
                                                     Box(
                                                         modifier = Modifier
                                                             .size(48.dp)
@@ -350,7 +358,6 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                                             .bouncyClick {
                                                                 if (fontSize > 12f) {
                                                                     fontSize -= 2f
-                                                                    prefs.edit { putFloat("font_size", fontSize) }
                                                                 }
                                                             },
                                                         contentAlignment = Alignment.Center
@@ -364,7 +371,6 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                                         fontWeight = FontWeight.Black
                                                     )
                                                     
-                                                    // Bouncy A+ button
                                                     Box(
                                                         modifier = Modifier
                                                             .size(48.dp)
@@ -372,12 +378,54 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                                                             .bouncyClick {
                                                                 if (fontSize < 40f) {
                                                                     fontSize += 2f
-                                                                    prefs.edit { putFloat("font_size", fontSize) }
                                                                 }
                                                             },
                                                         contentAlignment = Alignment.Center
                                                     ) {
                                                         Text("A+", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                                    }
+                                                }
+
+                                                Spacer(modifier = Modifier.height(16.dp))
+                                                Text(
+                                                    "Paper Style",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.padding(bottom = 8.dp)
+                                                )
+
+                                                val paperStyles = listOf(
+                                                    "ruled" to "Ruled Notebook",
+                                                    "flat" to "Flat Paper"
+                                                )
+
+                                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    paperStyles.forEach { (styleKey, styleLabel) ->
+                                                        val isSelected = paperStyleName == styleKey
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .liquidGlass(
+                                                                    color = if (isSelected)
+                                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                                                    else
+                                                                        Color.White.copy(alpha = 0.05f),
+                                                                    cornerRadius = 12
+                                                                )
+                                                                .bouncyClick {
+                                                                    paperStyleName = styleKey
+                                                                    prefs.edit { putString("paper_style", styleKey) }
+                                                                }
+                                                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = styleLabel,
+                                                                style = MaterialTheme.typography.bodyMedium,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
@@ -408,31 +456,27 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    // Two-finger pinch resizes the lyrics font (same value as
-                    // the A-/A+ controls). Only consumed when two pointers are
-                    // down, so single-finger scrolling and edge-swipe back are
-                    // untouched.
                     .pointerInput(Unit) {
                         awaitEachGesture {
                             var prevSpan = 0f
                             while (true) {
                                 val event = awaitPointerEvent()
                                 val pointers = event.changes.filter { it.pressed }
-                                if (pointers.isEmpty()) break
-
-                                val consumed = event.changes.any { it.isConsumed }
-                                if (pointers.size < 2 || consumed) {
+                                if (pointers.size < 2) {
                                     prevSpan = 0f
                                     continue
                                 }
+                                val p1 = pointers[0].position
+                                val p2 = pointers[1].position
+                                val dx = p1.x - p2.x
+                                val dy = p1.y - p2.y
+                                val span = sqrt(dx * dx + dy * dy)
 
-                                val span = (pointers[0].position - pointers[1].position).getDistance()
                                 val prev = prevSpan
                                 prevSpan = span
                                 if (prev <= 0f) continue
 
                                 val zoom = span / prev
-                                // Deadzone so two resting fingers don't drift the size.
                                 if (abs(zoom - 1f) < 0.005f) continue
 
                                 val newSize = (fontSize * zoom).coerceIn(12f, 40f)
@@ -447,19 +491,39 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
                     .padding(paddingValues)
             ) {
                 SelectionContainer {
-                    Column(
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
-                            .padding(24.dp)
-                            .padding(bottom = 80.dp)
                     ) {
-                        song.lyrics.forEach { section ->
-                            LyricSectionItem(
-                                section = section,
-                                fontSize = fontSize
-                            )
-                            Spacer(modifier = Modifier.height(24.dp))
+                        // PaperSurfaceCanvas is inside the scroll Box with matchParentSize()
+                        // so rule lines grow to cover the full lyrics height AND scroll in 1:1 lockstep!
+                        PaperSurfaceCanvas(
+                            style = paperSurfaceStyle,
+                            lineSpacing = rowHeight,
+                            topPadding = 20.dp,
+                            showMargin = paperSurfaceStyle == PaperSurfaceStyle.RULED,
+                            modifier = Modifier.matchParentSize()
+                        )
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    top = 20.dp + rowHeight, // Starts on 2nd notebook line
+                                    start = 48.dp,            // Positioned inside (to the right of) red margin line
+                                    end = 16.dp,
+                                    bottom = 80.dp
+                                )
+                        ) {
+                            song.lyrics.forEach { section ->
+                                LyricSectionItem(
+                                    section = section,
+                                    fontSize = fontSize,
+                                    rowHeight = rowHeight
+                                )
+                                Spacer(modifier = Modifier.height(rowHeight))
+                            }
                         }
                     }
                 }
@@ -542,7 +606,8 @@ fun SongDetailScreen(song: Song, onBack: () -> Unit, onEdit: ((Song) -> Unit)? =
 @Composable
 fun LyricSectionItem(
     section: LyricSection,
-    fontSize: Float
+    fontSize: Float,
+    rowHeight: Dp
 ) {
     val isChorus = section.type == "chorus"
     
@@ -550,17 +615,23 @@ fun LyricSectionItem(
         modifier = Modifier.fillMaxWidth()
     ) {
         if (isChorus) {
-            Text(
-                text = "Chorus",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = (fontSize - 2).sp,
-                    fontFamily = PencilPeteFontFamily
-                ),
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                fontStyle = FontStyle.Italic,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(rowHeight),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = "Chorus",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = (fontSize - 2).sp,
+                        fontFamily = PencilPeteFontFamily
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontStyle = FontStyle.Italic
+                )
+            }
         }
 
         section.lines.forEachIndexed { index, line ->
@@ -569,10 +640,11 @@ fun LyricSectionItem(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .bouncyClick()
-                    .padding(vertical = 3.dp)
+                    .height(rowHeight)
+                    .bouncyClick(),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     if (numberPrefix.isNotEmpty()) {
                         Text(
                             text = numberPrefix,
