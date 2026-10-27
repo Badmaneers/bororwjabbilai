@@ -35,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -68,7 +70,10 @@ fun CameraOcrScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
 
+    val context = LocalContext.current
     val cameraExecutor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+    
     @Suppress("DEPRECATION")
     val imageCapture: ImageCapture = remember {
         ImageCapture.Builder()
@@ -76,6 +81,18 @@ fun CameraOcrScreen(
             .build()
     }
     val ocrManager = remember { OcrManager() }
+
+    DisposableEffect(ocrManager, cameraExecutor) {
+        onDispose {
+            ocrManager.close()
+            try {
+                cameraProviderFuture.get().unbindAll()
+            } catch (e: Exception) {
+                Log.e("CameraOcrScreen", "Failed to unbind camera", e)
+            }
+            cameraExecutor.shutdown()
+        }
+    }
 
     var isProcessing by remember { mutableStateOf(false) }
 
@@ -96,7 +113,6 @@ fun CameraOcrScreen(
                 val previewView = PreviewView(ctx)
                 // FILL CENTER so the preview scales uniformly — keeps frame alignment honest
                 previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
-                val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                 cameraProviderFuture.addListener({
                     val cameraProvider = cameraProviderFuture.get()
                     @Suppress("DEPRECATION")

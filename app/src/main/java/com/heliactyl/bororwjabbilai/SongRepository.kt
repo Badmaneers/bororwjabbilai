@@ -16,21 +16,16 @@ class SongRepository(private val context: Context) {
     fun getSongs(): List<Song> {
         cachedSongs?.let { return it }
 
-        val jsonString = try {
-            context.assets.open("song.json").bufferedReader().use { it.readText() }
-        } catch (ioException: IOException) {
-            ioException.printStackTrace()
-            return emptyList()
-        }
-        
         return try {
             val listType = object : TypeToken<List<Song>>() {}.type
-            val songs: List<Song> = Gson().fromJson(jsonString, listType) ?: emptyList()
+            val songs: List<Song> = context.assets.open("song.json").reader().use { reader ->
+                Gson().fromJson(reader, listType) ?: emptyList()
+            }
             cachedSongs = songs
             songs
-        } catch (e: JsonSyntaxException) {
+        } catch (e: Exception) {
             e.printStackTrace()
-            val errorMessage = "JSON Error: ${e.localizedMessage}"
+            val errorMessage = "Error loading songs: ${e.localizedMessage}"
             
             Handler(Looper.getMainLooper()).post {
                 Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()

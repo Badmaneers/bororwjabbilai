@@ -19,4 +19,8 @@ class OcrManager {
             null
         }
     }
+
+    fun close() {
+        recognizer.close()
+    }
 }

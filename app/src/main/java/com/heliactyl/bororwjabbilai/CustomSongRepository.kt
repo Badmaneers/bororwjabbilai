@@ -21,9 +21,10 @@ class CustomSongRepository(context: Context) {
             return emptyList()
         }
         return try {
-            val jsonString = file.readText()
             val listType = object : TypeToken<List<Song>>() {}.type
-            val songs: List<Song> = gson.fromJson(jsonString, listType) ?: emptyList()
+            val songs: List<Song> = file.reader().use { reader ->
+                gson.fromJson(reader, listType) ?: emptyList()
+            }
             cachedCustomSongs = songs
             songs
         } catch (_: Exception) {
@@ -40,13 +41,17 @@ class CustomSongRepository(context: Context) {
             currentSongs.add(song)
         }
         cachedCustomSongs = currentSongs
-        file.writeText(gson.toJson(currentSongs))
+        file.writer().use { writer ->
+            gson.toJson(currentSongs, writer)
+        }
     }
 
     fun deleteSong(id: Int) {
         val currentSongs = getCustomSongs().filter { it.id != id }
         cachedCustomSongs = currentSongs
-        file.writeText(gson.toJson(currentSongs))
+        file.writer().use { writer ->
+            gson.toJson(currentSongs, writer)
+        }
     }
 
     fun generateNewId(): Int {
