@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -63,6 +64,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -610,6 +612,7 @@ fun LyricSectionItem(
     rowHeight: Dp
 ) {
     val isChorus = section.type == "chorus"
+    val lineSp = (fontSize * 1.55f).sp
     
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -618,14 +621,16 @@ fun LyricSectionItem(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(rowHeight),
+                    .defaultMinSize(minHeight = rowHeight),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
                     text = "Chorus",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = (fontSize - 2).sp,
-                        fontFamily = PencilPeteFontFamily
+                        fontFamily = PencilPeteFontFamily,
+                        lineHeight = lineSp,
+                        lineBreak = LineBreak.Paragraph
                     ),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -640,17 +645,22 @@ fun LyricSectionItem(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(rowHeight)
+                    .defaultMinSize(minHeight = rowHeight)
                     .bouncyClick(),
-                contentAlignment = Alignment.CenterStart
+                contentAlignment = Alignment.TopStart
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top
+                ) {
                     if (numberPrefix.isNotEmpty()) {
                         Text(
                             text = numberPrefix,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = fontSize.sp,
-                                fontFamily = PencilPeteFontFamily
+                                fontFamily = PencilPeteFontFamily,
+                                lineHeight = lineSp,
+                                lineBreak = LineBreak.Paragraph
                             ),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -658,11 +668,13 @@ fun LyricSectionItem(
                     }
                     Text(
                         text = line,
+                        modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = fontSize.sp,
                             fontFamily = PencilPeteFontFamily,
                             fontStyle = if (isChorus) FontStyle.Italic else FontStyle.Normal,
-                            lineHeight = (fontSize * 1.45f).sp
+                            lineHeight = lineSp,
+                            lineBreak = LineBreak.Paragraph
                         ),
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
