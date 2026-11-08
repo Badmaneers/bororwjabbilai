@@ -76,7 +76,18 @@ jobs:
           echo "KEY_PASSWORD=$KEY_PASSWORD" >> app/signing.properties
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        run: |
+          for attempt in 1 2 3; do
+            if ./gradlew assembleRelease; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "assembleRelease failed (attempt $attempt/3). Retrying in 15s..."
+              sleep 15
+            fi
+          done
+          echo "assembleRelease failed after 3 attempts."
+          exit 1
 
       - name: Generate Changelog
         run: |
